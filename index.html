@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Newcastle Weather</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Newcastle Weather & Tides</title>
+    
+    <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide icons from CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/lucide-react@latest"></script>
+    
+    <!-- Load Babel to translate React JSX syntax in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; padding: 0; height: 100vh; width: 100vw;}
-        #root { height: 100%; width: 100%; }
+        body { margin: 0; background-color: #0a0f1c; overflow: hidden; }
     </style>
 </head>
-<body class="bg-[#0a0f1c]">
+<body>
+    <!-- This is where the React App will be drawn -->
     <div id="root"></div>
-    <script type="text/babel">
-        const { 
+
+    <!-- The actual React App Code -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18';
+        import { createRoot } from 'https://esm.sh/react-dom@18/client';
+        import { 
             Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
             CloudFog, CloudDrizzle, Droplets, ArrowUp, ArrowDown,
             Waves, Loader2, CloudSun, AlertCircle, CalendarClock
-        } = LucideReact;
-
-        const { useState, useEffect, useCallback, useRef } = React;
+        } from 'https://esm.sh/lucide-react@0.292.0';
 
         // --- Utility Functions ---
-
         const getEstDateStr = () => {
             const estDate = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
             const yyyy = estDate.getFullYear();
@@ -110,7 +110,6 @@
         const parseLocal = (timeStr) => new Date(timeStr.replace(' ', 'T'));
 
         // --- Components ---
-
         const Clock = () => {
             const [time, setTime] = useState(new Date());
             useEffect(() => {
@@ -128,7 +127,7 @@
             const [now, setNow] = useState(new Date());
 
             useEffect(() => {
-                const timer = setInterval(() => setNow(new Date()), 60000); // Update every minute
+                const timer = setInterval(() => setNow(new Date()), 60000); 
                 return () => clearInterval(timer);
             }, []);
 
@@ -138,9 +137,7 @@
             const startTime = fullWeatherData[0].dateObj.getTime();
             const totalTime = totalDays * 24 * 60 * 60 * 1000; 
             
-            // Scale SVG width to allow drawing the full 29 days continuously
             const svgWidth = totalDays * 200;
-
             const continuousData = tideData.continuous;
             const hiloData = tideData.hilo;
 
@@ -187,7 +184,6 @@
 
             return (
                 <div className="w-full h-full flex flex-col pointer-events-none">
-                    {/* The absolute container positions the "Tides" text nicely fixed on the left regardless of pan */}
                     <div className="flex items-center gap-2 mb-2 pl-2 opacity-90 absolute -top-8 left-2 z-10">
                         <Waves size={18} className="text-cyan-400" />
                         <span className="text-sm font-bold text-cyan-400 tracking-widest uppercase drop-shadow-md">Tides</span>
@@ -268,7 +264,6 @@
             const isToday = day.isToday;
             const isSnow = day.snowSum > 0;
             
-            // Day style rules strictly bound to day.isToday
             const cardBaseClasses = "flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
             const bgClasses = isToday 
                 ? "bg-gradient-to-b from-blue-900/70 to-slate-900/90 border border-blue-400/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] scale-[1.03] lg:scale-105 z-20" 
@@ -340,8 +335,6 @@
             );
         };
 
-        // --- Main App ---
-
         function App() {
             const [fullWeatherData, setFullWeatherData] = useState([]);
             const [tideData, setTideData] = useState(null);
@@ -349,10 +342,9 @@
             const [error, setError] = useState(null);
             
             const [todayIndex, setTodayIndex] = useState(14);
-            const [panIndex, setPanIndex] = useState(12); // The index of the leftmost visible day
+            const [panIndex, setPanIndex] = useState(12);
             const [currentDayStr, setCurrentDayStr] = useState(getEstDateStr());
 
-            // Drag / Swipe State
             const containerRef = useRef(null);
             const [dragStartX, setDragStartX] = useState(null);
             const [dragOffsetPx, setDragOffsetPx] = useState(0);
@@ -377,7 +369,6 @@
                 setLoading(true);
                 setError(null);
                 try {
-                    // Fetch 29 total days: 14 past + today + 14 future
                     const lat = 44.0328;
                     const lon = -69.5191;
                     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
@@ -394,7 +385,7 @@
                     if (actualTodayIdx === -1) actualTodayIdx = 14; 
                     
                     setTodayIndex(actualTodayIdx);
-                    setPanIndex(actualTodayIdx - 2); // Automatically center Today initially
+                    setPanIndex(actualTodayIdx - 2); 
 
                     const tideBaseUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${startDateStr}&end_date=${endDateStr}&station=8418150&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&application=Weather_Dash&format=json`;
                     
@@ -445,11 +436,9 @@
                 const timer = setInterval(() => {
                     const nowStr = getEstDateStr();
                     if (nowStr !== currentDayStr) {
-                        // Midnight passed
                         setCurrentDayStr(nowStr);
                         fetchAllData();
                     } else if (new Date().getMinutes() % 15 === 0) {
-                        // 15 min check
                         fetchAllData();
                     }
                 }, 60000); 
@@ -457,7 +446,6 @@
                 return () => clearInterval(timer);
             }, [fetchAllData, currentDayStr]);
 
-            // Drag / Swipe Handlers mapped cleanly for fluid motion
             const handlePointerDown = (e) => {
                 setDragStartX(e.clientX || (e.touches && e.touches[0].clientX));
                 setIsDragging(true);
@@ -477,10 +465,9 @@
                 
                 if (containerRef.current) {
                     const viewWidth = containerRef.current.offsetWidth;
-                    const dayWidth = viewWidth / 5; // Width of 1 day panel
+                    const dayWidth = viewWidth / 5;
                     let shiftedDays = Math.round(-dragOffsetPx / dayWidth);
                     
-                    // Allow quick swiping / flicking without crossing the 50% threshold
                     if (shiftedDays === 0) {
                         if (dragOffsetPx < -40) shiftedDays = 1;
                         if (dragOffsetPx > 40) shiftedDays = -1;
@@ -499,7 +486,7 @@
             const wrapperWidthPercent = totalDays > 0 ? (totalDays / 5) * 100 : 100;
 
             return (
-                <div className="h-screen w-full bg-[#0a0f1c] overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
+                <div className="h-screen w-full overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-[-10%] left-[10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
                         <div className="absolute bottom-[-10%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full mix-blend-screen animate-[pulse_8s_ease-in-out_infinite_alternate]"></div>
@@ -513,7 +500,7 @@
                         <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${!isCenteredOnToday ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                             <button 
                                 onClick={() => setPanIndex(todayIndex - 2)}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(37,99,235,0.6)] border border-blue-400/50 transition-colors"
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(37,99,235,0.6)] border border-blue-400/50 transition-colors pointer-events-auto"
                             >
                                 <CalendarClock size={16} />
                                 Return to Today
@@ -543,7 +530,7 @@
                             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-red-400 bg-red-950/40 p-8 rounded-3xl border border-red-900/50 m-10">
                                 <AlertCircle size={48} />
                                 <p className="text-lg tracking-wide">{error}</p>
-                                <button onClick={() => { setPanIndex(todayIndex - 2); fetchAllData(); }} className="mt-4 px-6 py-2 bg-red-900/50 hover:bg-red-800/60 rounded-full text-white transition-colors cursor-pointer">
+                                <button onClick={() => { setPanIndex(todayIndex - 2); fetchAllData(); }} className="mt-4 px-6 py-2 bg-red-900/50 hover:bg-red-800/60 rounded-full text-white transition-colors cursor-pointer pointer-events-auto">
                                     Retry Connection
                                 </button>
                             </div>
@@ -556,7 +543,6 @@
                                     transition: isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)' 
                                 }}
                             >
-                                {/* 29 Days Continuous DayCards Track */}
                                 <div className="flex w-full items-stretch flex-shrink-0 mt-6 lg:mt-8 relative z-30 pointer-events-none h-fit">
                                     {fullWeatherData.map((day, idx) => (
                                         <div key={idx} style={{ width: `${100 / totalDays}%`, padding: '0 12px' }}>
@@ -565,7 +551,6 @@
                                     ))}
                                 </div>
 
-                                {/* 29 Days Continuous Unified Tide Chart Track */}
                                 <div className="flex-1 w-full mt-10 relative pointer-events-none pb-2">
                                     <TideChart tideData={tideData} fullWeatherData={fullWeatherData} />
                                 </div>
@@ -576,8 +561,7 @@
             );
         }
 
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
+        const root = createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
