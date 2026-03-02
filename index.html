@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Newcastle Weather & Tides</title>
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -30,8 +26,10 @@
         import { 
             Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
             CloudFog, CloudDrizzle, Droplets, ArrowUp, ArrowDown,
-            Waves, Loader2, CloudSun, AlertCircle, CalendarClock
+            Waves, Loader2, CloudSun, AlertCircle, CalendarClock,
+            Sunrise, Sunset, Moon
         } from 'https://esm.sh/lucide-react@0.292.0';
+        import SunCalc from 'https://esm.sh/suncalc@1.9.0';
 
         // --- Utility Functions ---
         const getEstDateStr = () => {
@@ -46,8 +44,9 @@
             const LUNAR_MONTH = 29.53058867;
             const NEW_MOON_EPOCH = new Date('2000-01-06T18:14:00Z').getTime();
             const elapsedDays = (date.getTime() - NEW_MOON_EPOCH) / (1000 * 60 * 60 * 24);
-            const cycleDays = elapsedDays % LUNAR_MONTH;
-            const phaseRatio = (cycleDays < 0 ? cycleDays + LUNAR_MONTH : cycleDays) / LUNAR_MONTH;
+            let cycleDays = elapsedDays % LUNAR_MONTH;
+            if (cycleDays < 0) cycleDays += LUNAR_MONTH;
+            const phaseRatio = cycleDays / LUNAR_MONTH;
             
             let index = Math.round(phaseRatio * 8);
             if (index >= 8) index = 0;
@@ -62,6 +61,7 @@
                 { name: "Last Quarter", icon: "🌗" },
                 { name: "Waning Crescent", icon: "🌘" }
             ];
+
             return phases[index];
         };
 
@@ -109,6 +109,28 @@
             hours = hours % 12;
             hours = hours ? hours : 12;
             return `${hours}:${min} ${ampm}`;
+        };
+
+        const formatSunriseSet = (isoString) => {
+            if (!isoString) return "--:--";
+            const timePart = isoString.split('T')[1];
+            if (!timePart) return "--:--";
+            let [hours, minutes] = timePart.split(':');
+            hours = parseInt(hours, 10);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}:${minutes} ${ampm}`;
+        };
+
+        const formatDateObjToTime = (d) => {
+            if (!d || isNaN(d)) return "--:--";
+            let hours = d.getHours();
+            let minutes = d.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
         };
 
         const parseLocal = (timeStr) => new Date(timeStr.replace(' ', 'T'));
@@ -161,8 +183,8 @@
             const getY = (v) => {
                 const val = parseFloat(v);
                 const centerVal = (yMax + yMin) / 2;
-                // Exaggerate amplitude by 30%
-                const exaggeratedVal = centerVal + (val - centerVal) * 1.3;
+                // Exaggerate amplitude by 40%
+                const exaggeratedVal = centerVal + (val - centerVal) * 1.4;
                 return 100 - ((exaggeratedVal - yMin) / (yMax - yMin)) * 100;
             };
 
@@ -333,10 +355,34 @@
                         </div>
                     </div>
                     
-                    {/* Moon Phase */}
-                    <div className="flex items-center justify-center gap-2 xl:gap-3 bg-slate-900/40 rounded-xl py-2 xl:py-3 px-2 whitespace-nowrap overflow-hidden mt-auto">
-                        <span className="text-lg xl:text-xl filter drop-shadow-md">{day.moonPhase.icon}</span>
-                        <span className="text-xs xl:text-sm font-medium text-slate-200 truncate">{day.moonPhase.name}</span>
+                    {/* Sun & Moon */}
+                    <div className="flex flex-col gap-2 mt-auto">
+                        <div className="flex justify-between items-center bg-slate-900/40 rounded-xl py-2 px-3">
+                            <div className="flex items-center gap-1.5 xl:gap-2">
+                                <Sunrise size={14} className="text-yellow-400" />
+                                <span className="text-[10px] xl:text-xs font-medium text-slate-200">{formatSunriseSet(day.sunrise)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 xl:gap-2">
+                                <span className="text-[10px] xl:text-xs font-medium text-slate-200">{formatSunriseSet(day.sunset)}</span>
+                                <Sunset size={14} className="text-orange-400" />
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center bg-slate-900/40 rounded-xl py-2 px-3">
+                            <div className="flex items-center gap-1">
+                                <Moon size={12} className="text-blue-200" />
+                                <ArrowUp size={10} className="text-blue-300" />
+                                <span className="text-[10px] xl:text-xs font-medium text-slate-300 ml-0.5">{day.moonrise}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <span className="text-[10px] xl:text-xs font-medium text-slate-300 mr-0.5">{day.moonset}</span>
+                                <ArrowDown size={10} className="text-indigo-300" />
+                                <Moon size={12} className="text-indigo-200" />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 bg-slate-900/40 rounded-xl py-2 px-2 whitespace-nowrap overflow-hidden">
+                            <span className="text-lg filter drop-shadow-md">{day.moonPhase.icon}</span>
+                            <span className="text-[10px] xl:text-xs font-medium text-slate-200 truncate">{day.moonPhase.name}</span>
+                        </div>
                     </div>
                 </div>
             );
@@ -345,6 +391,7 @@
         function App() {
             const [fullWeatherData, setFullWeatherData] = useState([]);
             const [tideData, setTideData] = useState(null);
+            const [currentTemp, setCurrentTemp] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             
@@ -378,12 +425,17 @@
                 try {
                     const lat = 44.0328;
                     const lon = -69.5191;
-                    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
+                    
+                    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max,sunrise,sunset&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
                     
                     const wRes = await fetch(weatherUrl);
                     if (!wRes.ok) throw new Error("Failed to fetch weather data.");
                     const wData = await wRes.json();
                     
+                    if (wData.current && wData.current.temperature_2m !== undefined) {
+                        setCurrentTemp(wData.current.temperature_2m);
+                    }
+
                     const startDateStr = wData.daily.time[0].replace(/-/g, '');
                     const endDateStr = wData.daily.time[wData.daily.time.length - 1].replace(/-/g, '');
                     
@@ -413,6 +465,9 @@
                         const [year, month, day] = timeStr.split('-');
                         const dateObj = new Date(year, month - 1, day);
                         
+                        const moonPhase = getMoonPhase(dateObj);
+                        const moonTimes = SunCalc.getMoonTimes(dateObj, lat, lon);
+                        
                         return {
                             dateStr: timeStr,
                             dateObj: dateObj,
@@ -423,8 +478,12 @@
                             precipSum: wData.daily.precipitation_sum[idx] || 0,
                             snowSum: wData.daily.snowfall_sum[idx] || 0,
                             precipProb: wData.daily.precipitation_probability_max[idx] || 0,
+                            sunrise: wData.daily.sunrise[idx],
+                            sunset: wData.daily.sunset[idx],
+                            moonrise: formatDateObjToTime(moonTimes.rise),
+                            moonset: formatDateObjToTime(moonTimes.set),
                             cloudCover: calculateDailyCloudCover(timeStr, wData.hourly),
-                            moonPhase: getMoonPhase(dateObj)
+                            moonPhase: moonPhase
                         };
                     });
                     
@@ -500,8 +559,11 @@
                     </div>
 
                     <header className="w-full pt-6 pb-4 px-8 lg:px-12 flex flex-col md:flex-row justify-between items-center md:items-end shrink-0 z-10 gap-4">
-                        <div className="text-center md:text-left">
+                        <div className="text-center md:text-left flex items-baseline gap-4">
                             <h1 className="text-4xl lg:text-5xl font-light tracking-wide text-white mb-1 xl:mb-2 shadow-sm">Newcastle, ME</h1>
+                            {currentTemp !== null && (
+                                <span className="text-3xl lg:text-4xl font-light text-blue-300 drop-shadow-md">{Math.round(currentTemp)}°</span>
+                            )}
                         </div>
                         
                         <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${!isCenteredOnToday ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
