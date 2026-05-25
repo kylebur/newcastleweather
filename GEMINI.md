@@ -1,6 +1,6 @@
 # Project Mandates
 
-- All changes must be added and committed to git.
+- All changes must be added, committed, and pushed to GitHub.
 
 # Deployment
 
@@ -18,4 +18,4 @@ The current application version is displayed on the bottom right of the web inte
 - `index.html` (UI version label)
 - `App.jsx` (UI version label)
 
-Current version: v1.1.0
+Current version: v1.1.1
