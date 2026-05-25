@@ -40,6 +40,75 @@
             return `${yyyy}-${mm}-${dd}`;
         };
 
+        const formatLocalDate = (date) => {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+        };
+
+        const getTideHeight = (dateObj, startYear) => {
+            const epoch = new Date(`${startYear}-01-01T00:00:00`);
+            const tMs = dateObj.getTime() - epoch.getTime();
+            const tHours = tMs / (1000 * 60 * 60);
+
+            const H0 = 3.260; // Mean Offset in ft
+            const A_M2 = 3.170;
+            const phase_M2 = 236.4 * Math.PI / 180;
+            const speed_M2 = (2 * Math.PI) / 12.42;
+
+            const A_K1 = 0.319;
+            const phase_K1 = 48.4 * Math.PI / 180;
+            const speed_K1 = (2 * Math.PI) / 23.93;
+
+            return H0 + A_M2 * Math.cos(speed_M2 * tHours - phase_M2) + A_K1 * Math.cos(speed_K1 * tHours - phase_K1);
+        };
+
+        const generateCustomTideData = (startDayStr, endDayStr) => {
+            const startYear = parseInt(startDayStr.substring(0, 4), 10);
+            const startLocal = new Date(`${startDayStr}T00:00:00`);
+            const endLocal = new Date(`${endDayStr}T23:59:59`);
+
+            const continuous = [];
+            let curr = new Date(startLocal.getTime());
+            while (curr <= endLocal) {
+                const v = getTideHeight(curr, startYear);
+                continuous.push({
+                    t: formatLocalDate(curr),
+                    v: v.toFixed(3)
+                });
+                curr.setTime(curr.getTime() + 15 * 60 * 1000);
+            }
+
+            const hilo = [];
+            let tSearch = new Date(startLocal.getTime());
+            const stepMs = 5 * 60 * 1000;
+            while (tSearch <= endLocal) {
+                const vPrev = getTideHeight(new Date(tSearch.getTime() - stepMs), startYear);
+                const vCurr = getTideHeight(tSearch, startYear);
+                const vNext = getTideHeight(new Date(tSearch.getTime() + stepMs), startYear);
+
+                if (vCurr > vPrev && vCurr > vNext) {
+                    hilo.push({
+                        t: formatLocalDate(tSearch),
+                        v: vCurr.toFixed(3),
+                        type: 'H'
+                    });
+                } else if (vCurr < vPrev && vCurr < vNext) {
+                    hilo.push({
+                        t: formatLocalDate(tSearch),
+                        v: vCurr.toFixed(3),
+                        type: 'L'
+                    });
+                }
+                tSearch.setTime(tSearch.getTime() + stepMs);
+            }
+
+            return { hilo, continuous };
+        };
+
         const getMoonPhase = (date) => {
             const LUNAR_MONTH = 29.53058867;
             const NEW_MOON_EPOCH = new Date('2000-01-06T18:14:00Z').getTime();
@@ -446,19 +515,13 @@
                     setTodayIndex(actualTodayIdx);
                     setPanIndex(actualTodayIdx - 2); 
 
-                    const tideBaseUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${startDateStr}&end_date=${endDateStr}&station=8418150&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&application=Weather_Dash&format=json`;
-                    
-                    const [tHiloRes, tContinuousRes] = await Promise.all([
-                        fetch(`${tideBaseUrl}&interval=hilo`),
-                        fetch(`${tideBaseUrl}`)
-                    ]);
-                    
-                    const tHiloData = await tHiloRes.json();
-                    const tContinuousData = await tContinuousRes.json();
+                    const startDayStr = wData.daily.time[0];
+                    const endDayStr = wData.daily.time[wData.daily.time.length - 1];
+                    const generatedTide = generateCustomTideData(startDayStr, endDayStr);
 
                     setTideData({
-                        hilo: tHiloData.predictions || [],
-                        continuous: tContinuousData.predictions || []
+                        hilo: generatedTide.hilo,
+                        continuous: generatedTide.continuous
                     });
 
                     const combined = wData.daily.time.map((timeStr, idx) => {
