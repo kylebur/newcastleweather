@@ -40,6 +40,215 @@
             return `${yyyy}-${mm}-${dd}`;
         };
 
+        const mapNwsForecastToWmoCode = (forecastStr) => {
+            if (!forecastStr) return 0;
+            const str = forecastStr.toLowerCase();
+            if (str.includes("thunderstorm") || str.includes("storm") || str.includes("lightning")) return 95;
+            if (str.includes("snow showers") || str.includes("snow flurries")) return 85;
+            if (str.includes("snow") || str.includes("sleet") || str.includes("ice") || str.includes("wintry mix")) return 73;
+            if (str.includes("rain showers") || str.includes("showers") || str.includes("drizzle showers")) return 80;
+            if (str.includes("freezing rain") || str.includes("freezing drizzle")) return 66;
+            if (str.includes("heavy rain") || str.includes("downpour")) return 65;
+            if (str.includes("rain") || str.includes("precipitation")) return 63;
+            if (str.includes("drizzle") || str.includes("mist")) return 51;
+            if (str.includes("fog") || str.includes("haze") || str.includes("misty")) return 45;
+            if (str.includes("overcast") || str.includes("cloudy")) return 3;
+            if (str.includes("partly cloudy") || str.includes("partly sunny") || str.includes("scattered clouds")) return 2;
+            if (str.includes("mostly clear") || str.includes("mostly sunny") || str.includes("few clouds")) return 1;
+            if (str.includes("clear") || str.includes("sunny") || str.includes("fair")) return 0;
+            return 0;
+        };
+
+        const estimateCloudCoverFromNws = (forecastStr) => {
+            if (!forecastStr) return 50;
+            const str = forecastStr.toLowerCase();
+            if (str.includes("clear") || str.includes("sunny") || str.includes("fair")) return 10;
+            if (str.includes("mostly sunny") || str.includes("mostly clear")) return 25;
+            if (str.includes("partly cloudy") || str.includes("partly sunny")) return 50;
+            if (str.includes("mostly cloudy")) return 75;
+            if (str.includes("cloudy") || str.includes("overcast")) return 100;
+            return 50;
+        };
+
+        const generate29DaysRange = () => {
+            const days = [];
+            const today = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
+            for (let i = -14; i <= 14; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                days.push(`${yyyy}-${mm}-${dd}`);
+            }
+            return days;
+        };
+
+        const formatEstDateTimeStr = (date) => {
+            if (!date || isNaN(date)) return "";
+            const est = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}));
+            const yyyy = est.getFullYear();
+            const mm = String(est.getMonth() + 1).padStart(2, '0');
+            const dd = String(est.getDate()).padStart(2, '0');
+            const hh = String(est.getHours()).padStart(2, '0');
+            const min = String(est.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        };
+
+        const mergeNwsDataWithCache = (nwsData) => {
+            const timeRange = generate29DaysRange();
+            
+            // Load cache
+            const cachedStr = localStorage.getItem('newcastle_weather_cache');
+            const cache = cachedStr ? JSON.parse(cachedStr) : null;
+            const cachedDaily = cache && cache.data && cache.data.daily ? cache.data.daily : null;
+            
+            // Map NWS periods by date
+            const nwsPeriodsByDate = {};
+            if (nwsData && nwsData.properties && nwsData.properties.periods) {
+                nwsData.properties.periods.forEach(p => {
+                    const dateStr = p.startTime.substring(0, 10);
+                    if (!nwsPeriodsByDate[dateStr]) {
+                        nwsPeriodsByDate[dateStr] = {};
+                    }
+                    if (p.isDaytime) {
+                        nwsPeriodsByDate[dateStr].day = p;
+                    } else {
+                        nwsPeriodsByDate[dateStr].night = p;
+                    }
+                });
+            }
+            
+            const daily = {
+                time: timeRange,
+                temperature_2m_max: [],
+                temperature_2m_min: [],
+                weather_code: [],
+                precipitation_sum: [],
+                snowfall_sum: [],
+                precipitation_probability_max: [],
+                sunrise: [],
+                sunset: []
+            };
+            
+            const hourly = {
+                time: [],
+                cloud_cover: []
+            };
+            
+            timeRange.forEach(dateStr => {
+                const nwsDay = nwsPeriodsByDate[dateStr];
+                let cacheIdx = -1;
+                if (cachedDaily && cachedDaily.time) {
+                    cacheIdx = cachedDaily.time.indexOf(dateStr);
+                }
+                
+                let maxTemp = 70;
+                let minTemp = 50;
+                let weatherCode = 2;
+                let precipSum = 0;
+                let snowSum = 0;
+                let precipProb = 0;
+                let cloudVal = 50;
+                let sunriseVal = "";
+                let sunsetVal = "";
+                
+                // 1. Populate from cache
+                if (cacheIdx !== -1) {
+                    maxTemp = cachedDaily.temperature_2m_max[cacheIdx];
+                    minTemp = cachedDaily.temperature_2m_min[cacheIdx];
+                    weatherCode = cachedDaily.weather_code[cacheIdx];
+                    precipSum = cachedDaily.precipitation_sum[cacheIdx] || 0;
+                    snowSum = cachedDaily.snowfall_sum[cacheIdx] || 0;
+                    precipProb = cachedDaily.precipitation_probability_max[cacheIdx] || 0;
+                    if (cachedDaily.sunrise) sunriseVal = cachedDaily.sunrise[cacheIdx] || "";
+                    if (cachedDaily.sunset) sunsetVal = cachedDaily.sunset[cacheIdx] || "";
+                    
+                    if (cache && cache.data && cache.data.hourly) {
+                        const hData = cache.data.hourly;
+                        for (let i = 0; i < hData.time.length; i++) {
+                            if (hData.time[i].startsWith(dateStr)) {
+                                hourly.time.push(hData.time[i]);
+                                hourly.cloud_cover.push(hData.cloud_cover[i]);
+                            }
+                        }
+                    }
+                }
+                
+                // Calculate sunrise/sunset locally using SunCalc if missing from cache
+                if (!sunriseVal || !sunsetVal) {
+                    const [year, month, day] = dateStr.split('-');
+                    const dateObj = new Date(year, month - 1, day);
+                    const times = SunCalc.getTimes(dateObj, 44.0328, -69.5191);
+                    if (!sunriseVal) sunriseVal = formatEstDateTimeStr(times.sunrise);
+                    if (!sunsetVal) sunsetVal = formatEstDateTimeStr(times.sunset);
+                }
+                
+                // 2. Overwrite with NWS forecast
+                if (nwsDay) {
+                    if (nwsDay.day) {
+                        maxTemp = nwsDay.day.temperature;
+                        weatherCode = mapNwsForecastToWmoCode(nwsDay.day.shortForecast);
+                        cloudVal = estimateCloudCoverFromNws(nwsDay.day.shortForecast);
+                        if (nwsDay.day.probabilityOfPrecipitation) {
+                            precipProb = nwsDay.day.probabilityOfPrecipitation.value || 0;
+                        }
+                    }
+                    if (nwsDay.night) {
+                        minTemp = nwsDay.night.temperature;
+                        if (!nwsDay.day) {
+                            weatherCode = mapNwsForecastToWmoCode(nwsDay.night.shortForecast);
+                            cloudVal = estimateCloudCoverFromNws(nwsDay.night.shortForecast);
+                        }
+                        if (nwsDay.night.probabilityOfPrecipitation) {
+                            precipProb = Math.max(precipProb, nwsDay.night.probabilityOfPrecipitation.value || 0);
+                        }
+                    }
+                    
+                    // Clean cached hourly cloud cover for this date
+                    const prefix = dateStr;
+                    for (let i = hourly.time.length - 1; i >= 0; i--) {
+                        if (hourly.time[i].startsWith(prefix)) {
+                            hourly.time.splice(i, 1);
+                            hourly.cloud_cover.splice(i, 1);
+                        }
+                    }
+                    
+                    for (let h = 0; h < 24; h++) {
+                        hourly.time.push(`${dateStr}T${String(h).padStart(2, '0')}:00`);
+                        hourly.cloud_cover.push(cloudVal);
+                    }
+                } else {
+                    const hasHourly = hourly.time.some(t => t.startsWith(dateStr));
+                    if (!hasHourly) {
+                        for (let h = 0; h < 24; h++) {
+                            hourly.time.push(`${dateStr}T${String(h).padStart(2, '0')}:00`);
+                            hourly.cloud_cover.push(50);
+                        }
+                    }
+                }
+                
+                daily.temperature_2m_max.push(maxTemp);
+                daily.temperature_2m_min.push(minTemp);
+                daily.weather_code.push(weatherCode);
+                daily.precipitation_sum.push(precipSum);
+                daily.snowfall_sum.push(snowSum);
+                daily.precipitation_probability_max.push(precipProb);
+                daily.sunrise.push(sunriseVal);
+                daily.sunset.push(sunsetVal);
+            });
+            
+            const firstPeriodTemp = (nwsData && nwsData.properties && nwsData.properties.periods && nwsData.properties.periods[0])
+                ? nwsData.properties.periods[0].temperature
+                : undefined;
+            
+            return {
+                daily,
+                hourly,
+                current: firstPeriodTemp !== undefined ? { temperature_2m: firstPeriodTemp } : undefined
+            };
+        };
+
         const formatLocalDate = (date) => {
             const yyyy = date.getFullYear();
             const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -463,6 +672,7 @@
             const [currentTemp, setCurrentTemp] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
+            const [weatherSource, setWeatherSource] = useState('Open-Meteo');
             
             const [todayIndex, setTodayIndex] = useState(14);
             const [panIndex, setPanIndex] = useState(12);
@@ -497,9 +707,48 @@
                     
                     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max,sunrise,sunset&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
                     
-                    const wRes = await fetch(weatherUrl);
-                    if (!wRes.ok) throw new Error("Failed to fetch weather data.");
-                    const wData = await wRes.json();
+                    let wData;
+                    let source = 'Open-Meteo';
+                    
+                    try {
+                        const wRes = await fetch(weatherUrl);
+                        if (!wRes.ok) throw new Error(`Status ${wRes.status}`);
+                        wData = await wRes.json();
+                        
+                        // Save to cache
+                        localStorage.setItem('newcastle_weather_cache', JSON.stringify({
+                            timestamp: Date.now(),
+                            source: 'Open-Meteo',
+                            data: wData
+                        }));
+                    } catch (openMeteoError) {
+                        console.warn("Open-Meteo fetch failed, trying NWS fallback...", openMeteoError);
+                        try {
+                            const nwsUrl = `https://api.weather.gov/gridpoints/GYX/93,79/forecast`;
+                            const nwsRes = await fetch(nwsUrl, {
+                                headers: {
+                                    'User-Agent': 'NewcastleWeatherApp/1.0'
+                                }
+                            });
+                            if (!nwsRes.ok) throw new Error(`NWS Status ${nwsRes.status}`);
+                            const nwsData = await nwsRes.json();
+                            
+                            wData = mergeNwsDataWithCache(nwsData);
+                            source = 'NWS Fallback';
+                        } catch (nwsError) {
+                            console.error("NWS fallback fetch failed as well.", nwsError);
+                            const cachedStr = localStorage.getItem('newcastle_weather_cache');
+                            if (cachedStr) {
+                                const cache = JSON.parse(cachedStr);
+                                wData = cache.data;
+                                source = `Local Cache (${new Date(cache.timestamp).toLocaleDateString()})`;
+                            } else {
+                                throw new Error(`Failed to fetch weather data: Open-Meteo (${openMeteoError.message}) & NWS Fallback (${nwsError.message}). No cache available.`);
+                            }
+                        }
+                    }
+                    
+                    setWeatherSource(source);
                     
                     if (wData.current && wData.current.temperature_2m !== undefined) {
                         setCurrentTemp(wData.current.temperature_2m);
@@ -690,7 +939,7 @@
                         )}
                     </main>
                     <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                        v1.1.1
+                        v1.2.0 • {weatherSource}
                     </div>
                 </div>
             );
