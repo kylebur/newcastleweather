@@ -259,41 +259,38 @@
         };
 
         const TIDE_CONSTITUENTS = [
-            { name: 'M2', amplitude: 3.2719, phaseRad: 5.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.4206 },
-            { name: 'N2', amplitude: 0.6885, phaseRad: 343.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.6583 },
-            { name: 'O1', amplitude: 0.3821, phaseRad: 171.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 25.8193 },
-            { name: 'MSF', amplitude: 0.3708, phaseRad: 26.2 * Math.PI / 180, speedRad: (2 * Math.PI) / 354.3671 },
-            { name: 'L2', amplitude: 0.3029, phaseRad: 32.5 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.1916 },
-            { name: 'K1', amplitude: 0.2907, phaseRad: 170.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 23.9345 },
-            { name: 'MM', amplitude: 0.2826, phaseRad: 0.4 * Math.PI / 180, speedRad: (2 * Math.PI) / 661.3092 },
-            { name: 'M4', amplitude: 0.2715, phaseRad: 298.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.2103 },
-            { name: 'S2', amplitude: 0.2049, phaseRad: 65.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.0000 },
-            { name: 'MN4', amplitude: 0.1803, phaseRad: 293.5 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.2692 },
-            { name: 'MK3', amplitude: 0.1450, phaseRad: 110.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.1771 },
-            { name: 'MS4', amplitude: 0.1159, phaseRad: 8.1 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.1033 },
-            { name: 'MO3', amplitude: 0.1123, phaseRad: 49.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.3863 },
-            { name: 'M6', amplitude: 0.0847, phaseRad: 168.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.1402 },
-            { name: 'EPS2', amplitude: 0.0828, phaseRad: 357.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 13.1273 },
-            { name: '2MK5', amplitude: 0.0742, phaseRad: 305.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.9309 },
-            { name: '2MN6', amplitude: 0.0707, phaseRad: 155.1 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.1663 },
-            { name: 'OO1', amplitude: 0.0604, phaseRad: 6.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 22.3061 },
-            { name: 'SN4', amplitude: 0.0603, phaseRad: 96.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.1602 },
-            { name: 'SK3', amplitude: 0.0573, phaseRad: 308.2 * Math.PI / 180, speedRad: (2 * Math.PI) / 7.9927 },
-            { name: 'Q1', amplitude: 0.0493, phaseRad: 252.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 26.8684 },
-            { name: 'ALP1', amplitude: 0.0454, phaseRad: 160.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 29.0727 },
-            { name: 'S4', amplitude: 0.0446, phaseRad: 125.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.0000 },
-            { name: 'UPS1', amplitude: 0.0367, phaseRad: 208.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 21.5782 },
-            { name: 'NO1', amplitude: 0.0336, phaseRad: 222.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 24.8332 },
-            { name: 'M3', amplitude: 0.0335, phaseRad: 339.4 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.2804 },
-            { name: 'MU2', amplitude: 0.0334, phaseRad: 115.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.8718 },
-            { name: 'ETA2', amplitude: 0.0309, phaseRad: 61.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 11.7545 },
-            { name: '2SK5', amplitude: 0.0296, phaseRad: 310.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.7974 },
-            { name: 'M8', amplitude: 0.0263, phaseRad: 350.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 3.1052 },
-            { name: '3MK7', amplitude: 0.0249, phaseRad: 168.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 3.5296 },
-            { name: '2MS6', amplitude: 0.0238, phaseRad: 210.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.0924 },
-            { name: '2Q1', amplitude: 0.0232, phaseRad: 306.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 28.0062 },
-            { name: 'J1', amplitude: 0.0140, phaseRad: 132.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 23.0985 },
-            { name: '2SM6', amplitude: 0.0024, phaseRad: 190.4 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.0457 }
+            { name: 'M2', amplitude: 3.2822, phaseRad: 6.2 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.4206 },
+            { name: 'N2', amplitude: 0.6696, phaseRad: 342.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.6583 },
+            { name: 'O1', amplitude: 0.3794, phaseRad: 174.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 25.8193 },
+            { name: 'L2', amplitude: 0.3002, phaseRad: 34.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.1916 },
+            { name: 'M4', amplitude: 0.2852, phaseRad: 300.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.2103 },
+            { name: 'K1', amplitude: 0.2491, phaseRad: 170.2 * Math.PI / 180, speedRad: (2 * Math.PI) / 23.9345 },
+            { name: 'S2', amplitude: 0.1865, phaseRad: 71.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.0000 },
+            { name: 'MN4', amplitude: 0.1791, phaseRad: 292.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.2692 },
+            { name: 'MK3', amplitude: 0.1377, phaseRad: 114.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.1771 },
+            { name: 'MS4', amplitude: 0.1197, phaseRad: 11.5 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.1033 },
+            { name: 'MO3', amplitude: 0.1076, phaseRad: 58.3 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.3863 },
+            { name: 'M6', amplitude: 0.0891, phaseRad: 169.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.1402 },
+            { name: 'EPS2', amplitude: 0.0716, phaseRad: 355.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 13.1273 },
+            { name: '2MN6', amplitude: 0.0670, phaseRad: 154.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.1663 },
+            { name: '2MK5', amplitude: 0.0641, phaseRad: 303.1 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.9309 },
+            { name: 'SN4', amplitude: 0.0590, phaseRad: 106.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.1602 },
+            { name: 'SK3', amplitude: 0.0584, phaseRad: 322.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 7.9927 },
+            { name: 'NO1', amplitude: 0.0531, phaseRad: 174.0 * Math.PI / 180, speedRad: (2 * Math.PI) / 24.8332 },
+            { name: 'OO1', amplitude: 0.0515, phaseRad: 5.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 22.3061 },
+            { name: 'M3', amplitude: 0.0495, phaseRad: 350.2 * Math.PI / 180, speedRad: (2 * Math.PI) / 8.2804 },
+            { name: 'S4', amplitude: 0.0402, phaseRad: 136.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 6.0000 },
+            { name: 'Q1', amplitude: 0.0371, phaseRad: 266.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 26.8684 },
+            { name: 'UPS1', amplitude: 0.0335, phaseRad: 209.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 21.5782 },
+            { name: 'J1', amplitude: 0.0331, phaseRad: 161.9 * Math.PI / 180, speedRad: (2 * Math.PI) / 23.0985 },
+            { name: 'ETA2', amplitude: 0.0306, phaseRad: 79.1 * Math.PI / 180, speedRad: (2 * Math.PI) / 11.7545 },
+            { name: 'MU2', amplitude: 0.0285, phaseRad: 80.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 12.8718 },
+            { name: 'M8', amplitude: 0.0268, phaseRad: 352.8 * Math.PI / 180, speedRad: (2 * Math.PI) / 3.1052 },
+            { name: '2SK5', amplitude: 0.0264, phaseRad: 316.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.7974 },
+            { name: '2Q1', amplitude: 0.0239, phaseRad: 273.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 28.0062 },
+            { name: '2MS6', amplitude: 0.0228, phaseRad: 222.6 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.0924 },
+            { name: '3MK7', amplitude: 0.0215, phaseRad: 173.7 * Math.PI / 180, speedRad: (2 * Math.PI) / 3.5296 },
+            { name: '2SM6', amplitude: 0.0042, phaseRad: 192.5 * Math.PI / 180, speedRad: (2 * Math.PI) / 4.0457 }
         ];
 
         const getTideHeight = (dateObj, startYear) => {
@@ -301,7 +298,7 @@
             const tMs = dateObj.getTime() - epoch.getTime();
             const tHours = tMs / (1000 * 60 * 60);
 
-            const H0 = 3.3850; // Mean Offset in ft
+            const H0 = 3.3650; // Mean Offset in ft
             let height = H0;
 
             for (let i = 0; i < TIDE_CONSTITUENTS.length; i++) {
@@ -976,7 +973,7 @@
                         )}
                     </main>
                     <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                        v1.3.0 • {weatherSource}
+                        v1.3.1 • {weatherSource}
                     </div>
                 </div>
             );

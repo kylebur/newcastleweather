@@ -18,4 +18,4 @@ The current application version is displayed on the bottom right of the web inte
 - `index.html` (UI version label)
 - `App.jsx` (UI version label)
 
-Current version: v1.3.0
+Current version: v1.3.1
