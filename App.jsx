@@ -253,8 +253,11 @@ const getTideHeight = (dateObj, startYear) => {
 
 const generateCustomTideData = (startDayStr, endDayStr) => {
     const startYear = parseInt(startDayStr.substring(0, 4), 10);
-    const startLocal = new Date(`${startDayStr}T00:00:00`);
-    const endLocal = new Date(`${endDayStr}T23:59:59`);
+    const [sYear, sMonth, sDay] = startDayStr.split('-');
+    const startLocal = new Date(parseInt(sYear, 10), parseInt(sMonth, 10) - 1, parseInt(sDay, 10), 0, 0, 0);
+    
+    const [eYear, eMonth, eDay] = endDayStr.split('-');
+    const endLocal = new Date(parseInt(eYear, 10), parseInt(eMonth, 10) - 1, parseInt(eDay, 10), 23, 59, 59);
 
     const continuous = [];
     let curr = new Date(startLocal.getTime());
@@ -363,7 +366,18 @@ const formatTime = (timeStr) => {
     return `${hours}:${min} ${ampm}`;
 };
 
-const parseLocal = (timeStr) => new Date(timeStr.replace(' ', 'T'));
+const parseLocal = (timeStr) => {
+    const parts = timeStr.split(' ');
+    const dateParts = parts[0].split('-');
+    const timeParts = parts[1].split(':');
+    return new Date(
+        parseInt(dateParts[0], 10),
+        parseInt(dateParts[1], 10) - 1,
+        parseInt(dateParts[2], 10),
+        parseInt(timeParts[0], 10),
+        parseInt(timeParts[1], 10)
+    );
+};
 
 // --- Components ---
 
@@ -404,7 +418,7 @@ const TideChart = ({ tideData, fullWeatherData }) => {
     const minHeight = Math.min(...heights);
     const maxHeight = Math.max(...heights);
 
-    const yPadding = (maxHeight - minHeight) * 0.45;
+    const yPadding = (maxHeight - minHeight) * 0.45 || 1.0;
     const yMin = minHeight - yPadding;
     const yMax = maxHeight + yPadding;
 
@@ -413,9 +427,10 @@ const TideChart = ({ tideData, fullWeatherData }) => {
         return ((time - startTime) / totalTime) * svgWidth;
     };
 
+    const yDiff = yMax - yMin === 0 ? 2.0 : yMax - yMin;
     const getY = (v) => {
         const val = parseFloat(v);
-        return 100 - ((val - yMin) / (yMax - yMin)) * 100;
+        return 100 - ((val - yMin) / yDiff) * 100;
     };
 
     let pathD = `M ${getX(continuousData[0].t)},${getY(continuousData[0].v)}`;
@@ -807,7 +822,7 @@ export default function App() {
     const wrapperWidthPercent = totalDays > 0 ? (totalDays / visibleDays) * 100 : 100;
 
     return (
-        <div className="h-screen w-full bg-[#0a0f1c] overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
+        <div className="app-container h-screen w-full bg-[#0a0f1c] overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full mix-blend-screen animate-[pulse_10s_ease-in-out_infinite]"></div>
                 <div className="absolute bottom-[-10%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full mix-blend-screen animate-[pulse_8s_ease-in-out_infinite_alternate]"></div>
@@ -877,14 +892,14 @@ export default function App() {
                         </div>
 
                         {/* 29 Days Continuous Unified Tide Chart Track */}
-                        <div className="flex-1 w-full mt-4 sm:mt-10 relative pointer-events-none pb-2">
+                        <div className="flex-1 w-full mt-4 sm:mt-10 relative pointer-events-none pb-2 min-h-[160px] sm:min-h-0">
                             <TideChart tideData={tideData} fullWeatherData={fullWeatherData} />
                         </div>
                     </div>
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                v1.3.4 • {weatherSource}
+                v1.3.5 • {weatherSource}
             </div>
         </div>
     );
