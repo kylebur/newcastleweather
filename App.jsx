@@ -899,7 +899,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                v1.3.5 • {weatherSource}
+                v1.3.6 • {weatherSource}
             </div>
         </div>
     );
