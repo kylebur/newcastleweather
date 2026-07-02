@@ -526,7 +526,7 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
     const isMobile = visibleDays === 1;
     
     // Day style rules strictly bound to focus / swipe card
-    const cardBaseClasses = "flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-3 sm:p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
+    const cardBaseClasses = "day-card-compact flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-3 sm:p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
     const bgClasses = isFocused 
         ? "bg-gradient-to-b from-blue-900/70 to-slate-900/90 border border-blue-400/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] scale-[1.03] lg:scale-105 z-20 opacity-100" 
         : "bg-slate-800/50 border border-slate-700/50 shadow-lg opacity-60 transition-opacity z-10 scale-95 lg:scale-100";
@@ -534,7 +534,7 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
     return (
         <div className={`${cardBaseClasses} ${bgClasses}`}>
             {/* Header */}
-            <div className="text-center mb-2 sm:mb-4 xl:mb-6">
+            <div className="card-header text-center mb-2 sm:mb-4 xl:mb-6">
                 <h2 className={`font-bold tracking-wide mb-0.5 sm:mb-1 whitespace-nowrap ${isToday ? 'text-xl sm:text-2xl text-white' : 'text-base sm:text-lg lg:text-xl text-slate-200'}`}>
                     {getDayLabel(day.dateObj, isToday)}
                 </h2>
@@ -545,7 +545,7 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
             
             {/* Weather Icon */}
             <div className="flex flex-col items-center mb-2 sm:mb-4 xl:mb-6">
-                <div className={`flex items-center justify-center rounded-full bg-slate-900/40 shadow-inner mb-2 sm:mb-3 ${isFocused ? (isMobile ? 'w-16 h-16' : 'w-24 h-24') : (isMobile ? 'w-12 h-12' : 'w-16 h-16 xl:w-20 xl:h-20')}`}>
+                <div className={`card-icon-container flex items-center justify-center rounded-full bg-slate-900/40 shadow-inner mb-2 sm:mb-3 ${isFocused ? (isMobile ? 'w-16 h-16' : 'w-24 h-24') : (isMobile ? 'w-12 h-12' : 'w-16 h-16 xl:w-20 xl:h-20')}`}>
                     {getWeatherIcon(day.weatherCode, isFocused ? (isMobile ? 36 : 52) : (isMobile ? 26 : 36))}
                 </div>
                 <span className={`font-semibold tracking-wide text-center ${isFocused ? 'text-base sm:text-xl text-blue-100' : 'text-xs sm:text-sm xl:text-base text-slate-300'}`}>
@@ -554,21 +554,21 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
             </div>
             
             {/* Temps */}
-            <div className="flex justify-center items-center gap-3 xl:gap-5 mb-2 sm:mb-4 xl:mb-6">
+            <div className="card-temp-container flex justify-center items-center gap-3 xl:gap-5 mb-2 sm:mb-4 xl:mb-6">
                 <div className="flex flex-col items-center">
                     <span className="text-[9px] sm:text-[10px] xl:text-xs text-slate-400 font-semibold tracking-widest uppercase mb-0.5 sm:mb-1">High</span>
-                    <span className={`font-bold ${isFocused ? 'text-2xl sm:text-3xl text-white' : 'text-lg sm:text-2xl xl:text-3xl text-slate-200'}`}>{Math.round(day.maxTemp)}°{isFocused && 'F'}</span>
+                    <span className={`card-temp-text font-bold ${isFocused ? 'text-2xl sm:text-3xl text-white' : 'text-lg sm:text-2xl xl:text-3xl text-slate-200'}`}>{Math.round(day.maxTemp)}°{isFocused && 'F'}</span>
                 </div>
                 <div className={`w-px bg-slate-600/50 ${isFocused ? 'h-6 sm:h-8' : 'h-5 sm:h-6 xl:h-8'}`}></div>
                 <div className="flex flex-col items-center">
                     <span className="text-[9px] sm:text-[10px] xl:text-xs text-slate-400 font-semibold tracking-widest uppercase mb-0.5 sm:mb-1">Low</span>
-                    <span className={`font-bold ${isFocused ? 'text-2xl sm:text-3xl text-slate-300' : 'text-lg sm:text-2xl xl:text-3xl text-slate-400'}`}>{Math.round(day.minTemp)}°</span>
+                    <span className={`card-temp-text font-bold ${isFocused ? 'text-2xl sm:text-3xl text-slate-300' : 'text-lg sm:text-2xl xl:text-3xl text-slate-400'}`}>{Math.round(day.minTemp)}°</span>
                 </div>
             </div>
             
             {/* Grid Stats */}
-            <div className="grid grid-cols-2 gap-2 xl:gap-3 mb-2 sm:mb-4 xl:mb-6">
-                <div className="flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1.5 sm:py-3 px-1 text-center">
+            <div className="card-stats-grid grid grid-cols-2 gap-2 xl:gap-3 mb-2 sm:mb-4 xl:mb-6">
+                <div className="card-stat-box flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1.5 sm:py-3 px-1 text-center">
                     {isSnow ? (
                         <CloudSnow size={isMobile ? 14 : 18} className="text-white mb-1.5 sm:mb-2" />
                     ) : (
@@ -581,7 +581,7 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
                         {isSnow ? 'Snow' : `${day.precipProb}% Rain`}
                     </span>
                 </div>
-                <div className="flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1.5 sm:py-3 px-1 text-center">
+                <div className="card-stat-box flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1.5 sm:py-3 px-1 text-center">
                     <Cloud size={isMobile ? 14 : 18} className="text-slate-400 mb-1.5 sm:mb-2" />
                     <span className="font-bold text-white text-xs sm:text-sm xl:text-base mb-0.5">{day.cloudCover}%</span>
                     <span className="text-[8px] sm:text-[9px] xl:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Clouds</span>
@@ -589,7 +589,7 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
             </div>
             
             {/* Moon Phase */}
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2 xl:gap-3 bg-slate-900/40 rounded-xl py-1.5 sm:py-2 xl:py-3 px-2 whitespace-nowrap overflow-hidden mt-auto">
+            <div className="card-moonphase-row flex items-center justify-center gap-1.5 sm:gap-2 xl:gap-3 bg-slate-900/40 rounded-xl py-1.5 sm:py-2 xl:py-3 px-2 whitespace-nowrap overflow-hidden mt-auto">
                 <span className="text-base sm:text-lg xl:text-xl filter drop-shadow-md">{day.moonPhase.icon}</span>
                 <span className="text-xs sm:text-sm font-medium text-slate-200 truncate">{day.moonPhase.name}</span>
             </div>
@@ -884,7 +884,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                v1.3.3 • {weatherSource}
+                v1.3.4 • {weatherSource}
             </div>
         </div>
     );
