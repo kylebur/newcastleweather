@@ -520,15 +520,15 @@ const TideChart = ({ tideData, fullWeatherData }) => {
     );
 };
 
-const DayCard = ({ day }) => {
+const DayCard = ({ day, isFocused }) => {
     const isToday = day.isToday;
     const isSnow = day.snowSum > 0;
     
-    // Day style rules strictly bound to day.isToday
+    // Day style rules strictly bound to focus / swipe card
     const cardBaseClasses = "flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
-    const bgClasses = isToday 
-        ? "bg-gradient-to-b from-blue-900/70 to-slate-900/90 border border-blue-400/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] scale-[1.03] lg:scale-105 z-20" 
-        : "bg-slate-800/50 border border-slate-700/50 shadow-lg opacity-75 transition-opacity z-10 scale-95 lg:scale-100";
+    const bgClasses = isFocused 
+        ? "bg-gradient-to-b from-blue-900/70 to-slate-900/90 border border-blue-400/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] scale-[1.03] lg:scale-105 z-20 opacity-100" 
+        : "bg-slate-800/50 border border-slate-700/50 shadow-lg opacity-60 transition-opacity z-10 scale-95 lg:scale-100";
         
     return (
         <div className={`${cardBaseClasses} ${bgClasses}`}>
@@ -601,13 +601,30 @@ const DayCard = ({ day }) => {
 export default function App() {
     const [fullWeatherData, setFullWeatherData] = useState([]);
     const [tideData, setTideData] = useState(null);
+    const [currentTemp, setCurrentTemp] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [weatherSource, setWeatherSource] = useState('Open-Meteo');
     
     const [todayIndex, setTodayIndex] = useState(14);
-    const [panIndex, setPanIndex] = useState(12); // The index of the leftmost visible day
+    const [centerIndex, setCenterIndex] = useState(14); // Focused card index
+    const [visibleDays, setVisibleDays] = useState(5); // Visible card count
     const [currentDayStr, setCurrentDayStr] = useState(getEstDateStr());
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 640) {
+                setVisibleDays(1);
+            } else if (window.innerWidth < 1024) {
+                setVisibleDays(3);
+            } else {
+                setVisibleDays(5);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Drag / Swipe State
     const containerRef = useRef(null);
@@ -636,7 +653,7 @@ export default function App() {
         try {
             const lat = 44.0328;
             const lon = -69.5191;
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
             
             let wData;
             let source = 'Open-Meteo';
@@ -681,12 +698,16 @@ export default function App() {
             
             setWeatherSource(source);
             
+            if (wData.current && wData.current.temperature_2m !== undefined) {
+                setCurrentTemp(wData.current.temperature_2m);
+            }
+            
             const todayStrEst = getEstDateStr();
             let actualTodayIdx = wData.daily.time.findIndex(d => d === todayStrEst);
             if (actualTodayIdx === -1) actualTodayIdx = 14; 
             
             setTodayIndex(actualTodayIdx);
-            setPanIndex(actualTodayIdx - 2); // Automatically center Today initially
+            setCenterIndex(actualTodayIdx); // Automatically focus Today initially
 
             const startDayStr = wData.daily.time[0];
             const endDayStr = wData.daily.time[wData.daily.time.length - 1];
@@ -763,7 +784,7 @@ export default function App() {
         
         if (containerRef.current) {
             const viewWidth = containerRef.current.offsetWidth;
-            const dayWidth = viewWidth / 5; // Width of 1 day panel
+            const dayWidth = viewWidth / visibleDays; // Width of 1 day panel
             let shiftedDays = Math.round(-dragOffsetPx / dayWidth);
             
             // Allow quick swiping / flicking without crossing the 50% threshold
@@ -772,17 +793,17 @@ export default function App() {
                 if (dragOffsetPx > 40) shiftedDays = -1;
             }
             
-            const maxPan = fullWeatherData.length - 5;
-            setPanIndex(prev => Math.max(0, Math.min(prev + shiftedDays, maxPan)));
+            setCenterIndex(prev => Math.max(0, Math.min(prev + shiftedDays, fullWeatherData.length - 1)));
         }
         
         setDragOffsetPx(0);
         setDragStartX(null);
     };
 
-    const isCenteredOnToday = panIndex === todayIndex - 2;
     const totalDays = fullWeatherData.length;
-    const wrapperWidthPercent = totalDays > 0 ? (totalDays / 5) * 100 : 100;
+    const panIndex = Math.max(0, Math.min(centerIndex - Math.floor(visibleDays / 2), totalDays - visibleDays));
+    const isCenteredOnToday = centerIndex === todayIndex;
+    const wrapperWidthPercent = totalDays > 0 ? (totalDays / visibleDays) * 100 : 100;
 
     return (
         <div className="h-screen w-full bg-[#0a0f1c] overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
@@ -791,15 +812,18 @@ export default function App() {
                 <div className="absolute bottom-[-10%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full mix-blend-screen animate-[pulse_8s_ease-in-out_infinite_alternate]"></div>
             </div>
 
-            <header className="w-full pt-6 pb-4 px-8 lg:px-12 flex flex-col md:flex-row justify-between items-center md:items-end shrink-0 z-10 gap-4">
-                <div className="text-center md:text-left">
-                    <h1 className="text-4xl lg:text-5xl font-light tracking-wide text-white mb-1 xl:mb-2 shadow-sm">Newcastle, ME</h1>
+            <header className="w-full pt-6 pb-4 px-8 lg:px-12 flex flex-col sm:flex-row justify-between items-center shrink-0 z-10 gap-4 relative">
+                <div className="text-center md:text-left flex items-baseline justify-center md:justify-start gap-4">
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-wide text-white mb-1 xl:mb-2 shadow-sm">Newcastle, ME</h1>
+                    {currentTemp !== null && (
+                        <span className="text-3xl lg:text-4xl font-light text-blue-300 drop-shadow-md">{Math.round(currentTemp)}°</span>
+                    )}
                 </div>
                 
-                <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${!isCenteredOnToday ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                <div className={`sm:absolute sm:top-6 sm:left-1/2 sm:transform sm:-translate-x-1/2 transition-all duration-500 ${!isCenteredOnToday ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                     <button 
-                        onClick={() => setPanIndex(todayIndex - 2)}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(37,99,235,0.6)] border border-blue-400/50 transition-colors"
+                        onClick={() => setCenterIndex(todayIndex)}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(37,99,235,0.6)] border border-blue-400/50 transition-colors pointer-events-auto"
                     >
                         <CalendarClock size={16} />
                         Return to Today
@@ -829,7 +853,7 @@ export default function App() {
                     <div className="flex-1 flex flex-col items-center justify-center gap-4 text-red-400 bg-red-950/40 p-8 rounded-3xl border border-red-900/50 m-10">
                         <AlertCircle size={48} />
                         <p className="text-lg tracking-wide">{error}</p>
-                        <button onClick={() => { setPanIndex(todayIndex - 2); fetchAllData(); }} className="mt-4 px-6 py-2 bg-red-900/50 hover:bg-red-800/60 rounded-full text-white transition-colors cursor-pointer">
+                        <button onClick={() => { setCenterIndex(todayIndex); fetchAllData(); }} className="mt-4 px-6 py-2 bg-red-900/50 hover:bg-red-800/60 rounded-full text-white transition-colors cursor-pointer pointer-events-auto">
                             Retry Connection
                         </button>
                     </div>
@@ -846,7 +870,7 @@ export default function App() {
                         <div className="flex w-full items-stretch flex-shrink-0 mt-6 lg:mt-8 relative z-30 pointer-events-none h-fit">
                             {fullWeatherData.map((day, idx) => (
                                 <div key={idx} style={{ width: `${100 / totalDays}%`, padding: '0 12px' }}>
-                                    <DayCard day={day} />
+                                    <DayCard day={day} isFocused={idx === centerIndex} />
                                 </div>
                             ))}
                         </div>
@@ -859,7 +883,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                v1.3.1 • {weatherSource}
+                v1.3.2 • {weatherSource}
             </div>
         </div>
     );
