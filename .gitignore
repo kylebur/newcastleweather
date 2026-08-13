@@ -1,0 +1,4 @@
+tide_log.csv
+node_modules/
+.DS_Store
+dist/
