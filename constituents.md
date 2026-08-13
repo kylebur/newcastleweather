@@ -1,38 +1,38 @@
 Harmonic Tide Constituents:
 
-Mean Offset (MSL): 3.3650 ft
+Mean Offset (MSL): 3.0971 ft
 
 | Constituent | Description | Amplitude | Phase | Period |
 |-------------|-------------|-----------|-------|--------|
-| M2 | Principal lunar semidiurnal | 3.2822 ft | 6.2° | 12.4206 hrs |
-| N2 | Larger lunar elliptic semidiurnal | 0.6696 ft | 342.0° | 12.6583 hrs |
-| O1 | Lunar diurnal | 0.3794 ft | 174.6° | 25.8193 hrs |
-| L2 | Smaller lunar elliptic semidiurnal | 0.3002 ft | 34.3° | 12.1916 hrs |
-| M4 | Shallow-water overtide of lunar | 0.2852 ft | 300.8° | 6.2103 hrs |
-| K1 | Luni-solar diurnal | 0.2491 ft | 170.2° | 23.9345 hrs |
-| S2 | Principal solar semidiurnal | 0.1865 ft | 71.3° | 12.0000 hrs |
-| MN4 | Shallow-water overtide (M2 & N2) | 0.1791 ft | 292.9° | 6.2692 hrs |
-| MK3 | Shallow-water third-diurnal | 0.1377 ft | 114.7° | 8.1771 hrs |
-| MS4 | Shallow-water overtide (M2 & S2) | 0.1197 ft | 11.5° | 6.1033 hrs |
-| MO3 | Shallow-water third-diurnal | 0.1076 ft | 58.3° | 8.3863 hrs |
-| M6 | Shallow-water overtide (sixth-diurnal) | 0.0891 ft | 169.0° | 4.1402 hrs |
-| EPS2 | Lunar semidiurnal | 0.0716 ft | 355.7° | 13.1273 hrs |
-| 2MN6 | Shallow-water sixth-diurnal | 0.0670 ft | 154.8° | 4.1663 hrs |
-| 2MK5 | Shallow-water fifth-diurnal | 0.0641 ft | 303.1° | 4.9309 hrs |
-| SN4 | Shallow-water overtide (S2 & N2) | 0.0590 ft | 106.9° | 6.1602 hrs |
-| SK3 | Shallow-water third-diurnal | 0.0584 ft | 322.9° | 7.9927 hrs |
-| NO1 | Lunar diurnal (combination) | 0.0531 ft | 174.0° | 24.8332 hrs |
-| OO1 | Lunar diurnal | 0.0515 ft | 5.9° | 22.3061 hrs |
-| M3 | Lunar third-diurnal | 0.0495 ft | 350.2° | 8.2804 hrs |
-| S4 | Shallow-water overtide of solar | 0.0402 ft | 136.6° | 6.0000 hrs |
-| Q1 | Larger lunar elliptic diurnal | 0.0371 ft | 266.9° | 26.8684 hrs |
-| UPS1 | Lunar diurnal | 0.0335 ft | 209.8° | 21.5782 hrs |
-| J1 | Small lunar elliptic diurnal | 0.0331 ft | 161.9° | 23.0985 hrs |
-| ETA2 | Lunar semidiurnal | 0.0306 ft | 79.1° | 11.7545 hrs |
-| MU2 | Variational lunar semidiurnal | 0.0285 ft | 80.6° | 12.8718 hrs |
-| M8 | Shallow-water eighth-diurnal | 0.0268 ft | 352.8° | 3.1052 hrs |
-| 2SK5 | Shallow-water fifth-diurnal | 0.0264 ft | 316.7° | 4.7974 hrs |
-| 2Q1 | Lunar diurnal | 0.0239 ft | 273.7° | 28.0062 hrs |
-| 2MS6 | Shallow-water sixth-diurnal | 0.0228 ft | 222.6° | 4.0924 hrs |
-| 3MK7 | Shallow-water seventh-diurnal | 0.0215 ft | 173.7° | 3.5296 hrs |
-| 2SM6 | Shallow-water sixth-diurnal | 0.0042 ft | 192.5° | 4.0457 hrs |
+| M2 | Principal Lunar Semidiurnal | 3.1715 ft | 6.95° | 12.4206 hrs |
+| N2 | Larger Lunar Elliptic Semidiurnal | 0.6925 ft | 334.08° | 12.6583 hrs |
+| S2 | Principal Solar Semidiurnal | 0.3902 ft | 85.53° | 12.0000 hrs |
+| L2 | Smaller Lunar Elliptic Semidiurnal | 0.3136 ft | 35.54° | 12.1916 hrs |
+| O1 | Principal Lunar Diurnal | 0.3114 ft | 169.92° | 25.8193 hrs |
+| K1 | Luni-solar Diurnal | 0.2962 ft | 203.37° | 23.9345 hrs |
+| M4 | Lunar Quarter-diurnal | 0.2578 ft | 300.82° | 6.2103 hrs |
+| SK3 | Third-diurnal | 0.1611 ft | 308.68° | 7.9927 hrs |
+| MN4 | Shallow Water Quarter-diurnal | 0.1513 ft | 286.37° | 6.2692 hrs |
+| S4 | Solar Quarter-diurnal | 0.1359 ft | 126.10° | 6.0000 hrs |
+| MO3 | Third-diurnal | 0.1178 ft | 41.47° | 8.3863 hrs |
+| MK3 | Third-diurnal | 0.1163 ft | 94.96° | 8.1771 hrs |
+| MU2 | Variational Semidiurnal | 0.1017 ft | 64.87° | 12.8718 hrs |
+| MS4 | Shallow Water Quarter-diurnal | 0.1017 ft | 7.30° | 6.1033 hrs |
+| EPS2 | Semidiurnal | 0.0871 ft | 36.15° | 13.1273 hrs |
+| M6 | Lunar Third-diurnal | 0.0812 ft | 176.23° | 4.1402 hrs |
+| NO1 | Diurnal | 0.0764 ft | 321.66° | 24.8332 hrs |
+| 2MK5 | Fifth-diurnal | 0.0682 ft | 317.20° | 4.9309 hrs |
+| 2MN6 | Sixth-diurnal | 0.0614 ft | 148.00° | 4.1663 hrs |
+| 2SK5 | Fifth-diurnal | 0.0519 ft | 318.43° | 4.7974 hrs |
+| Q1 | Larger Lunar Elliptic Diurnal | 0.0498 ft | 155.24° | 26.8684 hrs |
+| 2MS6 | Sixth-diurnal | 0.0397 ft | 210.97° | 4.0924 hrs |
+| M3 | Lunar Terdiurnal | 0.0342 ft | 21.34° | 8.2804 hrs |
+| SN4 | Quarter-diurnal | 0.0329 ft | 41.56° | 6.1602 hrs |
+| 2Q1 | Diurnal | 0.0269 ft | 270.09° | 28.0062 hrs |
+| UPS1 | Diurnal | 0.0227 ft | 163.54° | 21.5782 hrs |
+| 3MK7 | Seventh-diurnal | 0.0203 ft | 156.96° | 3.5296 hrs |
+| J1 | Smaller Lunar Elliptic Diurnal | 0.0198 ft | 256.30° | 23.0985 hrs |
+| M8 | Lunar Octadiurnal | 0.0187 ft | 345.62° | 3.1052 hrs |
+| ETA2 | Semidiurnal | 0.0133 ft | 352.93° | 11.7545 hrs |
+| OO1 | Lunar Diurnal | 0.0131 ft | 79.68° | 22.3061 hrs |
+| 2SM6 | Sixth-diurnal | 0.0076 ft | 65.31° | 4.0457 hrs |
