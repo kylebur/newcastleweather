@@ -706,29 +706,29 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     )}
                 </svg>
 
-                {/* Interactive Scrubber Floating HUD */}
+                {/* Interactive Scrubber Floating HUD inside Chart */}
                 {scrubInfo && (
                     <div 
-                        className="absolute z-40 transform -translate-x-1/2 -top-16 bg-slate-950/95 border border-amber-400/50 backdrop-blur-xl rounded-2xl p-2.5 shadow-2xl flex flex-col gap-1 pointer-events-auto cursor-pointer animate-in fade-in zoom-in duration-150"
+                        className="absolute z-50 transform -translate-x-1/2 top-3 bg-slate-950/95 border border-amber-400/80 backdrop-blur-2xl rounded-2xl p-2.5 sm:p-3 shadow-[0_0_30px_rgba(0,0,0,0.9)] flex flex-col gap-1 pointer-events-auto cursor-pointer"
                         style={{ 
                             left: `${Math.max(12, Math.min(88, scrubInfo.xPercent))}%` 
                         }}
                         onClick={(e) => { e.stopPropagation(); setScrubInfo(null); }}
                     >
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1">
-                            <span className="text-[11px] font-bold text-slate-200 whitespace-nowrap">{scrubInfo.timeStr}</span>
-                            <span className="text-[8px] text-slate-400 uppercase font-mono">✕</span>
+                        <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-1">
+                            <span className="text-xs font-bold text-amber-200 whitespace-nowrap">{scrubInfo.timeStr}</span>
+                            <span className="text-[9px] text-slate-400 font-mono px-1 bg-slate-800/80 rounded">✕</span>
                         </div>
                         <div className="flex items-center gap-3 pt-0.5 whitespace-nowrap">
                             {scrubInfo.riverTemp !== null && (
-                                <div className="flex items-center gap-1 text-amber-300">
-                                    <Waves size={13} className="text-amber-400" />
-                                    <span className="text-xs font-bold">River {scrubInfo.riverTemp}°F</span>
+                                <div className="flex items-center gap-1.5 text-amber-300">
+                                    <Waves size={14} className="text-amber-400" />
+                                    <span className="text-xs sm:text-sm font-bold">River {scrubInfo.riverTemp}°F</span>
                                 </div>
                             )}
                             {scrubInfo.predictedTide !== null && (
-                                <div className="flex items-center gap-1 text-cyan-300">
-                                    <span className="text-xs font-bold">Tide {scrubInfo.predictedTide}'</span>
+                                <div className="flex items-center gap-1.5 text-cyan-300">
+                                    <span className="text-xs sm:text-sm font-bold">Tide {scrubInfo.predictedTide}'</span>
                                     {scrubInfo.measuredTide !== null && (
                                         <span className="text-[10px] text-emerald-400 font-semibold">(Obs {scrubInfo.measuredTide}')</span>
                                     )}
@@ -798,108 +798,83 @@ const DayCard = ({ day, isFocused, visibleDays, liveData }) => {
         return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
     }, [liveData, day.dateStr]);
 
-    const cardBaseClasses = "day-card-compact flex flex-col relative rounded-[1.25rem] lg:rounded-[1.75rem] p-2.5 sm:p-3.5 lg:p-4 backdrop-blur-xl transition-all duration-500 w-full h-full";
+    const cardBaseClasses = "day-card-compact flex flex-col relative rounded-2xl lg:rounded-3xl p-3 sm:p-3.5 backdrop-blur-xl transition-all duration-300 w-full h-full justify-between";
     const bgClasses = isFocused 
-        ? "bg-gradient-to-b from-blue-900/70 to-slate-900/90 border border-blue-400/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] scale-[1.02] lg:scale-105 z-20 opacity-100" 
-        : "bg-slate-800/50 border border-slate-700/50 shadow-lg opacity-60 transition-opacity z-10 scale-95 lg:scale-100";
+        ? "bg-gradient-to-b from-blue-900/80 via-slate-900/90 to-slate-950/95 border-2 border-blue-400/60 shadow-[0_0_35px_rgba(59,130,246,0.35)] scale-[1.02] z-20 opacity-100" 
+        : "bg-slate-900/50 border border-slate-700/40 shadow-md opacity-65 transition-opacity z-10 hover:opacity-90";
         
     return (
         <div className={`${cardBaseClasses} ${bgClasses}`}>
-            {/* Header */}
-            <div className="card-header text-center mb-1 sm:mb-2 xl:mb-3">
-                <h2 className={`font-bold tracking-wide mb-0.5 whitespace-nowrap ${isToday ? 'text-lg sm:text-xl xl:text-2xl text-white' : 'text-sm sm:text-base lg:text-lg text-slate-200'}`}>
+            {/* Top Header: Day & Date */}
+            <div className="flex items-center justify-between border-b border-slate-700/40 pb-1.5 mb-1.5">
+                <span className={`font-bold tracking-wide ${isToday ? 'text-base sm:text-lg text-white font-extrabold' : 'text-xs sm:text-sm text-slate-200'}`}>
                     {getDayLabel(day.dateObj, isToday)}
-                </h2>
-                <p className="text-[9px] sm:text-[10px] xl:text-xs text-blue-200/70 font-medium tracking-widest uppercase">
-                    {day.dateStr}
-                </p>
-            </div>
-            
-            {/* Weather Icon */}
-            <div className="flex flex-col items-center mb-1 sm:mb-2 xl:mb-3">
-                <div className={`card-icon-container flex items-center justify-center rounded-full bg-slate-900/40 shadow-inner mb-1 sm:mb-2 ${isFocused ? (isMobile ? 'w-12 h-12' : 'w-16 h-16 xl:w-20 xl:h-20') : (isMobile ? 'w-10 h-10' : 'w-12 h-12 xl:w-16 xl:h-16')}`}>
-                    {getWeatherIcon(day.weatherCode, isFocused ? (isMobile ? 28 : 40) : (isMobile ? 22 : 30))}
-                </div>
-                <span className={`font-semibold tracking-wide text-center ${isFocused ? 'text-sm sm:text-base text-blue-100' : 'text-xs sm:text-sm text-slate-300'}`}>
-                    {getWeatherLabel(day.weatherCode)}
+                </span>
+                <span className="text-[10px] sm:text-xs text-blue-200/70 font-mono">
+                    {day.dateStr.slice(5)}
                 </span>
             </div>
             
-            {/* Temps */}
-            <div className="card-temp-container flex justify-center items-center gap-3 xl:gap-4 mb-1 sm:mb-2 xl:mb-3">
-                <div className="flex flex-col items-center">
-                    <span className="text-[8px] sm:text-[9px] xl:text-[10px] text-slate-400 font-semibold tracking-widest uppercase mb-0.5">High</span>
-                    <span className={`card-temp-text font-bold ${isFocused ? 'text-xl sm:text-2xl xl:text-3xl text-white' : 'text-base sm:text-xl xl:text-2xl text-slate-200'}`}>{Math.round(day.maxTemp)}°{isFocused && 'F'}</span>
+            {/* Weather & Temperatures Row */}
+            <div className="flex items-center justify-between gap-2 my-1">
+                <div className="flex items-center gap-2">
+                    <div className={`flex items-center justify-center rounded-2xl bg-slate-950/50 p-1.5 shadow-inner ${isFocused ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-8 h-8 sm:w-10 sm:h-10'}`}>
+                        {getWeatherIcon(day.weatherCode, isFocused ? (isMobile ? 24 : 28) : 20)}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className={`font-semibold leading-tight ${isFocused ? 'text-xs sm:text-sm text-blue-100' : 'text-[11px] text-slate-300'} truncate max-w-[90px] sm:max-w-[120px]`}>
+                            {getWeatherLabel(day.weatherCode)}
+                        </span>
+                    </div>
                 </div>
-                <div className={`w-px bg-slate-600/50 ${isFocused ? 'h-5 sm:h-6' : 'h-4 sm:h-5'}`}></div>
-                <div className="flex flex-col items-center">
-                    <span className="text-[8px] sm:text-[9px] xl:text-[10px] text-slate-400 font-semibold tracking-widest uppercase mb-0.5">Low</span>
-                    <span className={`card-temp-text font-bold ${isFocused ? 'text-xl sm:text-2xl xl:text-3xl text-slate-300' : 'text-base sm:text-xl xl:text-2xl text-slate-400'}`}>{Math.round(day.minTemp)}°</span>
+                <div className="flex items-baseline gap-1.5 text-right">
+                    <span className={`font-extrabold ${isFocused ? 'text-xl sm:text-2xl text-white' : 'text-lg sm:text-xl text-slate-100'}`}>
+                        {Math.round(day.maxTemp)}°
+                    </span>
+                    <span className="text-xs sm:text-sm text-slate-400 font-medium">
+                        {Math.round(day.minTemp)}°
+                    </span>
                 </div>
             </div>
             
-            {/* Grid Stats */}
-            <div className="card-stats-grid grid grid-cols-2 gap-1.5 xl:gap-2 mb-1 sm:mb-2 xl:mb-3">
-                <div className="card-stat-box flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1 sm:py-2 px-1 text-center">
+            {/* Metrics Badges Row: Rain/Snow + Clouds + River Temp */}
+            <div className="flex flex-wrap items-center gap-1.5 my-1.5">
+                <div className="flex items-center gap-1 bg-slate-950/50 rounded-lg px-2 py-0.5 text-[10px] sm:text-xs text-slate-300">
                     {isSnow ? (
-                        <CloudSnow size={isMobile ? 12 : 15} className="text-white mb-1" />
+                        <CloudSnow size={12} className="text-white" />
                     ) : (
-                        <Droplets size={isMobile ? 12 : 15} className="text-blue-400 mb-1" />
+                        <Droplets size={12} className="text-blue-400" />
                     )}
-                    <span className="font-bold text-white text-xs sm:text-sm mb-0.5">
-                        {isSnow ? `${day.snowSum.toFixed(1)}"` : (day.precipSum > 0 ? `${day.precipSum.toFixed(2)}"` : '0"')}
-                    </span>
-                    <span className="text-[7px] sm:text-[8px] xl:text-[9px] text-slate-400 font-semibold tracking-wider uppercase">
-                        {isSnow ? 'Snow' : `${day.precipProb}% Rain`}
-                    </span>
+                    <span className="font-semibold">{isSnow ? `${day.snowSum.toFixed(1)}"` : `${day.precipProb}%`}</span>
                 </div>
-                <div className="card-stat-box flex flex-col items-center justify-center bg-slate-900/40 rounded-xl py-1 sm:py-2 px-1 text-center">
-                    <Cloud size={isMobile ? 12 : 15} className="text-slate-400 mb-1" />
-                    <span className="font-bold text-white text-xs sm:text-sm mb-0.5">{day.cloudCover}%</span>
-                    <span className="text-[7px] sm:text-[8px] xl:text-[9px] text-slate-400 font-semibold tracking-wider uppercase">Clouds</span>
+                
+                <div className="flex items-center gap-1 bg-slate-950/50 rounded-lg px-2 py-0.5 text-[10px] sm:text-xs text-slate-300">
+                    <Cloud size={12} className="text-slate-400" />
+                    <span className="font-semibold">{day.cloudCover}%</span>
                 </div>
-            </div>
-            
-            {/* River Water Temp if recorded for this day */}
-            {dayWaterTemp !== null && (
-                <div className="card-watertemp-row flex items-center justify-center gap-1.5 bg-amber-950/40 border border-amber-500/30 rounded-xl py-0.5 sm:py-1 px-2 mb-1 text-amber-300 shadow-sm cursor-pointer">
-                    <Waves size={isMobile ? 11 : 13} className="text-amber-400" />
-                    <span className="text-[9px] sm:text-xs font-bold tracking-wide">
-                        River {dayWaterTemp}°F
-                    </span>
-                </div>
-            )}
 
-            {/* Sun & Moon */}
-            <div className="card-sunmoon-container flex flex-col gap-1 sm:gap-1.5 mt-auto">
-                <div className="card-sunmoon-row flex justify-between items-center bg-slate-900/40 rounded-xl py-1 sm:py-1.5 px-2 text-center">
-                    <div className="flex items-center gap-1">
-                        <Sunrise size={isMobile ? 10 : 12} className="text-yellow-400" />
-                        <span className="text-[8px] sm:text-[9px] xl:text-xs font-medium text-slate-200">{formatSunriseSet(day.sunrise)}</span>
+                {dayWaterTemp !== null && (
+                    <div className="flex items-center gap-1 bg-amber-950/60 border border-amber-500/40 rounded-lg px-2 py-0.5 text-[10px] sm:text-xs text-amber-300">
+                        <Waves size={12} className="text-amber-400" />
+                        <span className="font-bold">River {dayWaterTemp}°F</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-[8px] sm:text-[9px] xl:text-xs font-medium text-slate-200">{formatSunriseSet(day.sunset)}</span>
-                        <Sunset size={isMobile ? 10 : 12} className="text-orange-400" />
-                    </div>
-                </div>
-                <div className="card-sunmoon-row flex justify-between items-center bg-slate-900/40 rounded-xl py-1 sm:py-1.5 px-2 text-center">
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                        <Moon size={isMobile ? 9 : 11} className="text-blue-200" />
-                        <ArrowUp size={isMobile ? 7 : 9} className="text-blue-300" />
-                        <span className="text-[8px] sm:text-[9px] xl:text-xs font-medium text-slate-300 ml-0.5">{day.moonrise}</span>
-                    </div>
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                        <span className="text-[8px] sm:text-[9px] xl:text-xs font-medium text-slate-300 mr-0.5">{day.moonset}</span>
-                        <Moon size={isMobile ? 9 : 11} className="text-blue-200" />
-                        <ArrowDown size={isMobile ? 7 : 9} className="text-blue-300" />
-                    </div>
-                </div>
+                )}
             </div>
 
-            {/* Moon Phase */}
-            <div className="card-moonphase-row flex items-center justify-center gap-1 sm:gap-1.5 bg-slate-900/40 rounded-xl py-1 sm:py-1.5 px-2 whitespace-nowrap overflow-hidden mt-1">
-                <span className="text-xs sm:text-sm xl:text-base filter drop-shadow-md">{day.moonPhase.icon}</span>
-                <span className="text-[9px] sm:text-xs font-medium text-slate-200 truncate">{day.moonPhase.name}</span>
+            {/* Sun / Moon / Phase compact footer bar */}
+            <div className="flex items-center justify-between bg-slate-950/50 rounded-xl px-2 py-1 text-[9px] sm:text-[10px] text-slate-300 mt-1 border border-slate-800/60">
+                <div className="flex items-center gap-1">
+                    <Sunrise size={10} className="text-yellow-400" />
+                    <span>{formatSunriseSet(day.sunrise)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Sunset size={10} className="text-orange-400" />
+                    <span>{formatSunriseSet(day.sunset)}</span>
+                </div>
+                <div className="flex items-center gap-1 text-slate-200">
+                    <span className="text-xs">{day.moonPhase.icon}</span>
+                    <span className="truncate max-w-[60px]">{day.moonPhase.name}</span>
+                </div>
             </div>
         </div>
     );
@@ -1229,7 +1204,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.4.6 • {weatherSource}</span>
+                <span>v1.4.7 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}
