@@ -91,16 +91,44 @@ def parse_float_safe(val):
         return None
 
 
+try:
+    import zoneinfo
+    EASTERN_TZ = zoneinfo.ZoneInfo("America/New_York")
+except Exception:
+    EASTERN_TZ = datetime.timezone(datetime.timedelta(hours=-4))  # Fallback EDT
+
+
 def iso_to_est_str(iso_str):
-    """Convert ISO UTC or local timestamp string to 'YYYY-MM-DD HH:MM' format."""
+    """Convert ISO UTC timestamp string to Eastern Time 'YYYY-MM-DD HH:MM' format."""
     try:
-        # Replace trailing Z if present
         cleaned = iso_str.replace("Z", "+00:00")
         dt = datetime.datetime.fromisoformat(cleaned)
-        # We assume local representation in Eastern Time or dt's local timezone
-        return dt.strftime("%Y-%m-%d %H:%M")
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        dt_est = dt.astimezone(EASTERN_TZ)
+        return dt_est.strftime("%Y-%m-%d %H:%M")
     except Exception:
         return iso_str[:16].replace("T", " ")
+
+
+def filter_dense_history(points, min_interval_minutes=5):
+    """Keep at most one reading every min_interval_minutes to keep live_data.json compact."""
+    if not points:
+        return []
+    filtered = []
+    last_dt = None
+    for pt in points:
+        try:
+            cur_dt = datetime.datetime.strptime(pt["t"], "%Y-%m-%d %H:%M")
+            if last_dt is None or (cur_dt - last_dt).total_seconds() >= (min_interval_minutes * 60):
+                filtered.append(pt)
+                last_dt = cur_dt
+            else:
+                # Update the last point value to latest in the interval
+                filtered[-1] = pt
+        except Exception:
+            filtered.append(pt)
+    return filtered
 
 
 def fetch_sensor_data(config):
@@ -202,9 +230,9 @@ def fetch_sensor_data(config):
         if not water_hist_map or water_hist_map[-1]["t"] != cur_time_str:
             water_hist_map.append({"t": cur_time_str, "v": current_water_temp})
 
-    if current_tide_height is not None:
-        if not tide_hist_map or tide_hist_map[-1]["t"] != cur_time_str:
-            tide_hist_map.append({"t": cur_time_str, "v": current_tide_height})
+    # Filter to at most 1 reading per 5 minutes to keep file size efficient
+    water_hist_map = filter_dense_history(water_hist_map, min_interval_minutes=5)
+    tide_hist_map = filter_dense_history(tide_hist_map, min_interval_minutes=5)
 
     payload = {
         "updated_at": iso_now,
