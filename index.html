@@ -149,7 +149,7 @@
 
     <!-- The actual React App Code -->
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18';
+        import React, { useState, useEffect, useCallback, useRef, useMemo } from 'https://esm.sh/react@18';
         import { createRoot } from 'https://esm.sh/react-dom@18/client';
         import { 
             Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
@@ -1342,7 +1342,7 @@
                         )}
                     </main>
                     <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                        <span>v1.4.3 • {weatherSource}</span>
+                        <span>v1.4.4 • {weatherSource}</span>
                         {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                             <span className="text-emerald-500/80">• Live Sensors</span>
                         )}

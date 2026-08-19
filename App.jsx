@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
     Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
     CloudFog, CloudDrizzle, Droplets, ArrowUp, ArrowDown,
@@ -1107,7 +1107,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.4.3 • {weatherSource}</span>
+                <span>v1.4.4 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}
