@@ -578,15 +578,17 @@
         };
 
         const parseLocal = (timeStr) => {
-            const parts = timeStr.split(' ');
+            if (!timeStr) return new Date();
+            const cleanStr = String(timeStr).replace('T', ' ');
+            const parts = cleanStr.split(' ');
             const dateParts = parts[0].split('-');
-            const timeParts = parts[1].split(':');
+            const timeParts = parts[1] ? parts[1].split(':') : ['00', '00'];
             return new Date(
                 parseInt(dateParts[0], 10),
                 parseInt(dateParts[1], 10) - 1,
                 parseInt(dateParts[2], 10),
-                parseInt(timeParts[0], 10),
-                parseInt(timeParts[1], 10)
+                parseInt(timeParts[0] || 0, 10),
+                parseInt(timeParts[1] || 0, 10)
             );
         };
 
@@ -604,7 +606,7 @@
             );
         };
 
-        const TideChart = ({ tideData, fullWeatherData }) => {
+        const TideChart = ({ tideData, fullWeatherData, liveData }) => {
             const [now, setNow] = useState(new Date());
 
             useEffect(() => {
@@ -667,11 +669,45 @@
                 });
             }
 
+            // Process live measured tide data points
+            const measuredHistory = (liveData && liveData.measured_tide && Array.isArray(liveData.measured_tide.history)) 
+                ? liveData.measured_tide.history 
+                : [];
+            
+            const validMeasured = measuredHistory.filter(pt => {
+                try {
+                    const tMs = parseLocal(pt.t).getTime();
+                    return tMs >= startTime && tMs <= startTime + totalTime && !isNaN(parseFloat(pt.v));
+                } catch {
+                    return false;
+                }
+            });
+
+            let measuredPathD = "";
+            if (validMeasured.length > 1) {
+                measuredPathD = `M ${getX(validMeasured[0].t)},${getY(validMeasured[0].v)}`;
+                for (let i = 1; i < validMeasured.length; i++) {
+                    measuredPathD += ` L ${getX(validMeasured[i].t)},${getY(validMeasured[i].v)}`;
+                }
+            }
+
+            const currentMeasuredTide = liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined
+                ? parseFloat(liveData.measured_tide.current)
+                : null;
+
             return (
                 <div className="w-full h-full flex flex-col pointer-events-none">
-                    <div className="flex items-center gap-2 mb-2 pl-2 opacity-90 absolute -top-8 left-2 z-10">
-                        <Waves size={18} className="text-cyan-400" />
-                        <span className="text-sm font-bold text-cyan-400 tracking-widest uppercase drop-shadow-md">Tides</span>
+                    <div className="flex items-center gap-3 mb-2 pl-2 opacity-90 absolute -top-8 left-2 z-10">
+                        <div className="flex items-center gap-2">
+                            <Waves size={18} className="text-cyan-400" />
+                            <span className="text-sm font-bold text-cyan-400 tracking-widest uppercase drop-shadow-md">Tides</span>
+                        </div>
+                        {validMeasured.length > 0 && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-[10px] text-emerald-300 font-semibold tracking-wider uppercase backdrop-blur-md">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>Live Sensor ({validMeasured.length} readings)</span>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex-1 relative bg-slate-900/40 rounded-3xl border border-slate-700/50 backdrop-blur-xl shadow-2xl overflow-visible">
@@ -695,6 +731,29 @@
                             <path d={fillD} fill="url(#waterFill)" />
                             <path d={pathD} fill="none" stroke="url(#lineGlow)" strokeWidth="2.5" className="drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
                             
+                            {measuredPathD && (
+                                <path 
+                                    d={measuredPathD} 
+                                    fill="none" 
+                                    stroke="#34d399" 
+                                    strokeWidth="2.5" 
+                                    strokeDasharray="4 3" 
+                                    className="drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" 
+                                />
+                            )}
+                            {validMeasured.map((pt, i) => (
+                                <circle 
+                                    key={i} 
+                                    cx={getX(pt.t)} 
+                                    cy={getY(pt.v)} 
+                                    r="3.5" 
+                                    fill="#34d399" 
+                                    stroke="#064e3b" 
+                                    strokeWidth="1.5" 
+                                    className="drop-shadow-[0_0_4px_rgba(52,211,153,0.9)]" 
+                                />
+                            ))}
+
                             {xNow >= 0 && xNow <= svgWidth && (
                                 <>
                                     <line x1={xNow} y1="0" x2={xNow} y2="100" stroke="rgba(255, 255, 255, 0.5)" strokeWidth="1.5" strokeDasharray="4 4" />
@@ -735,8 +794,11 @@
                             <div 
                                 className="absolute transform -translate-x-1/2 top-0 mt-3 flex flex-col items-center z-20"
                                 style={{ left: `${(xNow / svgWidth) * 100}%` }}>
-                                <span className="bg-blue-500/90 text-white text-[9px] xl:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(59,130,246,0.6)] border border-blue-400/50">
-                                    Now
+                                <span className="bg-blue-500/90 text-white text-[9px] xl:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(59,130,246,0.6)] border border-blue-400/50 flex items-center gap-1">
+                                    <span>Now</span>
+                                    {currentMeasuredTide !== null && (
+                                        <span className="text-emerald-200 font-normal">({currentMeasuredTide.toFixed(1)}')</span>
+                                    )}
                                 </span>
                             </div>
                         )}
@@ -849,6 +911,7 @@
             const [fullWeatherData, setFullWeatherData] = useState([]);
             const [tideData, setTideData] = useState(null);
             const [currentTemp, setCurrentTemp] = useState(null);
+            const [liveData, setLiveData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [weatherSource, setWeatherSource] = useState('Open-Meteo');
@@ -892,6 +955,18 @@
                 }
                 return count > 0 ? Math.round(sum / count) : 0;
             };
+
+            const fetchLiveData = useCallback(async () => {
+                try {
+                    const res = await fetch(`live_data.json?t=${Date.now()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setLiveData(data);
+                    }
+                } catch (e) {
+                    console.warn("Could not load live sensor data:", e);
+                }
+            }, []);
 
             const fetchAllData = useCallback(async () => {
                 setLoading(true);
@@ -1005,6 +1080,7 @@
 
             useEffect(() => {
                 fetchAllData();
+                fetchLiveData();
                 
                 const timer = setInterval(() => {
                     const nowStr = getEstDateStr();
@@ -1014,10 +1090,12 @@
                     } else if (new Date().getMinutes() % 15 === 0) {
                         fetchAllData();
                     }
-                }, 60000); 
+                    // Fetch live sensor data every 2 minutes
+                    fetchLiveData();
+                }, 120000); 
                 
                 return () => clearInterval(timer);
-            }, [fetchAllData, currentDayStr]);
+            }, [fetchAllData, fetchLiveData, currentDayStr]);
 
             const handlePointerDown = (e) => {
                 setDragStartX(e.clientX || (e.touches && e.touches[0].clientX));
@@ -1066,10 +1144,31 @@
                     </div>
 
                     <header className="w-full pt-3 pb-2 sm:pt-6 sm:pb-4 px-8 lg:px-12 flex flex-col sm:flex-row justify-between items-center shrink-0 z-10 gap-2 sm:gap-4 relative">
-                        <div className="text-center md:text-left flex items-baseline justify-center md:justify-start gap-4">
+                        <div className="text-center md:text-left flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4">
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-wide text-white mb-1 xl:mb-2 shadow-sm">Newcastle, ME</h1>
                             {currentTemp !== null && (
                                 <span className="text-3xl lg:text-4xl font-light text-blue-300 drop-shadow-md">{Math.round(currentTemp)}°</span>
+                            )}
+                            {liveData && liveData.water_temperature && liveData.water_temperature.current !== null && liveData.water_temperature.current !== undefined && (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-cyan-950/60 border border-cyan-500/40 rounded-full text-cyan-300 shadow-sm backdrop-blur-md">
+                                    <Waves size={14} className="text-cyan-400" />
+                                    <span className="text-xs sm:text-sm font-medium tracking-wide">
+                                        River <span className="font-bold text-cyan-200">{Math.round(liveData.water_temperature.current)}°{liveData.water_temperature.unit || 'F'}</span>
+                                    </span>
+                                </div>
+                            )}
+                            {liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined && (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded-full text-emerald-300 shadow-sm backdrop-blur-md">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-xs sm:text-sm font-medium tracking-wide">
+                                        Tide <span className="font-bold text-emerald-100">{parseFloat(liveData.measured_tide.current).toFixed(1)}'</span>
+                                    </span>
+                                    {liveData.measured_tide.trend && (
+                                        <span className="text-[10px] text-emerald-400/90 font-semibold uppercase">
+                                            {liveData.measured_tide.trend === 'rising' ? '▲' : liveData.measured_tide.trend === 'falling' ? '▼' : '•'}
+                                        </span>
+                                    )}
+                                </div>
                             )}
                         </div>
                         
@@ -1128,13 +1227,16 @@
                                 </div>
 
                                 <div className="flex-1 w-full mt-4 sm:mt-10 relative pointer-events-none pb-2 min-h-[160px] sm:min-h-0">
-                                    <TideChart tideData={tideData} fullWeatherData={fullWeatherData} />
+                                    <TideChart tideData={tideData} fullWeatherData={fullWeatherData} liveData={liveData} />
                                 </div>
                             </div>
                         )}
                     </main>
-                    <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none">
-                        v1.3.9 • {weatherSource}
+                    <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
+                        <span>v1.4.0 • {weatherSource}</span>
+                        {liveData && (liveData.water_temperature || liveData.measured_tide) && (
+                            <span className="text-emerald-500/80">• Live Sensors</span>
+                        )}
                     </div>
                 </div>
             );

@@ -1,0 +1,11 @@
+{
+  "ha_url": "http://homeassistant.local:8123",
+  "ha_token": "YOUR_HOME_ASSISTANT_LONG_LIVED_ACCESS_TOKEN_HERE",
+  "water_temp_entity": "sensor.damariscotta_river_temperature",
+  "measured_tide_entity": "sensor.measured_tide_height",
+  "output_file": "live_data.json",
+  "history_hours": 48,
+  "git_push": true,
+  "git_remote": "origin",
+  "git_branch": "main"
+}
