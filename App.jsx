@@ -585,61 +585,37 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     <path d={fillD} fill="url(#waterFill)" />
                     <path d={pathD} fill="none" stroke="url(#lineGlow)" strokeWidth="2.5" className="drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
                     
-                    {/* Measured Tide - Segmented dashed emerald curve (no connecting line across night gaps) */}
-                    {measuredPathD && (
-                        <path 
-                            d={measuredPathD} 
-                            fill="none" 
-                            stroke="#34d399" 
-                            strokeWidth="2.5" 
-                            strokeDasharray="4 3" 
-                            className="drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" 
-                        />
-                    )}
-                    {validMeasured.map((pt, i) => (
-                        <circle 
-                            key={`tide-pt-${i}`} 
-                            cx={getX(pt.t)} 
-                            cy={getY(pt.v)} 
-                            r="3" 
-                            fill="#34d399" 
-                            stroke="#064e3b" 
-                            strokeWidth="1.2" 
-                            className="drop-shadow-[0_0_4px_rgba(52,211,153,0.9)]" 
-                        />
-                    ))}
+            {/* Measured Tide - Segmented dashed emerald curve (no connecting line across night gaps) */}
+            {measuredPathD && (
+                <path 
+                    d={measuredPathD} 
+                    fill="none" 
+                    stroke="#34d399" 
+                    strokeWidth="2.5" 
+                    strokeDasharray="4 3" 
+                    className="drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" 
+                />
+            )}
 
-                    {/* River Water Temperature - Glowing amber curve */}
-                    {tempPathD && (
-                        <path 
-                            d={tempPathD} 
-                            fill="none" 
-                            stroke="#fbbf24" 
-                            strokeWidth="2.2" 
-                            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
-                        />
-                    )}
-                    {validTemps.map((pt, i) => (
-                        <circle 
-                            key={`temp-pt-${i}`} 
-                            cx={getX(pt.t)} 
-                            cy={getTempY(pt.v)} 
-                            r="2.5" 
-                            fill="#fbbf24" 
-                            stroke="#78350f" 
-                            strokeWidth="1" 
-                            className="drop-shadow-[0_0_4px_rgba(251,191,36,0.9)]" 
-                        />
-                    ))}
+            {/* River Water Temperature - Glowing amber curve */}
+            {tempPathD && (
+                <path 
+                    d={tempPathD} 
+                    fill="none" 
+                    stroke="#fbbf24" 
+                    strokeWidth="2.2" 
+                    className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
+                />
+            )}
 
-                    {xNow >= 0 && xNow <= svgWidth && (
-                        <>
-                            <line x1={xNow} y1="0" x2={xNow} y2="100" stroke="rgba(255, 255, 255, 0.5)" strokeWidth="1.5" strokeDasharray="4 4" />
-                            <circle cx={xNow} cy={yNow} r="10" fill="rgba(56, 189, 248, 0.3)" className="animate-pulse" />
-                            <circle cx={xNow} cy={yNow} r="4" fill="#fff" className="drop-shadow-[0_0_5px_rgba(255,255,255,1)]" />
-                        </>
-                    )}
-                </svg>
+            {xNow >= 0 && xNow <= svgWidth && (
+                <>
+                    <line x1={xNow} y1="0" x2={xNow} y2="100" stroke="rgba(255, 255, 255, 0.5)" strokeWidth="1.5" strokeDasharray="4 4" />
+                    <circle cx={xNow} cy={yNow} r="10" fill="rgba(56, 189, 248, 0.3)" className="animate-pulse" />
+                    <circle cx={xNow} cy={yNow} r="4" fill="#fff" className="drop-shadow-[0_0_5px_rgba(255,255,255,1)]" />
+                </>
+            )}
+        </svg>
 
                 {hiloData.map((pt, idx) => {
                     const xPercent = (getX(pt.t) / svgWidth) * 100;
@@ -692,14 +668,14 @@ const DayCard = ({ day, isFocused, visibleDays, liveData }) => {
     
     const dayWaterTemp = useMemo(() => {
         if (!liveData || !liveData.water_temperature || !Array.isArray(liveData.water_temperature.history)) return null;
-        const timePrefix = day.timeStr || (day.dateObj && day.dateObj.toISOString().slice(0, 10));
-        if (!timePrefix) return null;
-        const matches = liveData.water_temperature.history.filter(pt => pt.t && pt.t.startsWith(timePrefix));
+        const prefix = day.dateStr;
+        if (!prefix) return null;
+        const matches = liveData.water_temperature.history.filter(pt => pt.t && pt.t.startsWith(prefix));
         if (matches.length === 0) return null;
         const vals = matches.map(p => parseFloat(p.v)).filter(v => !isNaN(v));
         if (vals.length === 0) return null;
         return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-    }, [liveData, day.timeStr, day.dateObj]);
+    }, [liveData, day.dateStr]);
 
     // Day style rules strictly bound to focus / swipe card
     const cardBaseClasses = "day-card-compact flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-3 sm:p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
@@ -1107,7 +1083,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.4.4 • {weatherSource}</span>
+                <span>v1.4.5 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}

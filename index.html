@@ -735,7 +735,7 @@
                 const ptTime = parseLocal(pt.t).getTime();
                 const x = getX(pt.t);
                 const y = getTempY(pt.v);
-                if (isNaN(x) || isNaN(y)) return;
+                if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) return;
                 
                 if (lastTempTime === null || (ptTime - lastTempTime) > MAX_GAP_MS) {
                     tempPathD += ` M ${x.toFixed(1)},${y.toFixed(1)}`;
@@ -763,7 +763,7 @@
                         {validMeasured.length > 0 && (
                             <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-[10px] text-emerald-300 font-semibold tracking-wider uppercase backdrop-blur-md">
                                 <span className="w-2 h-0.5 bg-emerald-400 inline-block border-b border-dashed border-emerald-300" />
-                                <span>Measured Tide ({validMeasured.length})</span>
+                                <span>Measured Tide</span>
                             </div>
                         )}
                         {validTemps.length > 0 && (
@@ -806,18 +806,6 @@
                                     className="drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" 
                                 />
                             )}
-                            {validMeasured.map((pt, i) => (
-                                <circle 
-                                    key={`tide-pt-${i}`} 
-                                    cx={getX(pt.t)} 
-                                    cy={getY(pt.v)} 
-                                    r="3" 
-                                    fill="#34d399" 
-                                    stroke="#064e3b" 
-                                    strokeWidth="1.2" 
-                                    className="drop-shadow-[0_0_4px_rgba(52,211,153,0.9)]" 
-                                />
-                            ))}
 
                             {/* River Water Temperature - Glowing amber curve */}
                             {tempPathD && (
@@ -829,18 +817,6 @@
                                     className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
                                 />
                             )}
-                            {validTemps.map((pt, i) => (
-                                <circle 
-                                    key={`temp-pt-${i}`} 
-                                    cx={getX(pt.t)} 
-                                    cy={getTempY(pt.v)} 
-                                    r="2.5" 
-                                    fill="#fbbf24" 
-                                    stroke="#78350f" 
-                                    strokeWidth="1" 
-                                    className="drop-shadow-[0_0_4px_rgba(251,191,36,0.9)]" 
-                                />
-                            ))}
 
                             {xNow >= 0 && xNow <= svgWidth && (
                                 <>
@@ -902,14 +878,14 @@
             
             const dayWaterTemp = useMemo(() => {
                 if (!liveData || !liveData.water_temperature || !Array.isArray(liveData.water_temperature.history)) return null;
-                const timePrefix = day.timeStr || (day.dateObj && day.dateObj.toISOString().slice(0, 10));
-                if (!timePrefix) return null;
-                const matches = liveData.water_temperature.history.filter(pt => pt.t && pt.t.startsWith(timePrefix));
+                const prefix = day.dateStr;
+                if (!prefix) return null;
+                const matches = liveData.water_temperature.history.filter(pt => pt.t && pt.t.startsWith(prefix));
                 if (matches.length === 0) return null;
                 const vals = matches.map(p => parseFloat(p.v)).filter(v => !isNaN(v));
                 if (vals.length === 0) return null;
                 return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-            }, [liveData, day.timeStr, day.dateObj]);
+            }, [liveData, day.dateStr]);
 
             const cardBaseClasses = "day-card-compact flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-3 sm:p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
             const bgClasses = isFocused 
@@ -1342,7 +1318,7 @@
                         )}
                     </main>
                     <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                        <span>v1.4.4 • {weatherSource}</span>
+                        <span>v1.4.5 • {weatherSource}</span>
                         {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                             <span className="text-emerald-500/80">• Live Sensors</span>
                         )}
@@ -1351,8 +1327,41 @@
             );
         }
 
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+            componentDidCatch(error, errorInfo) {
+                console.error("React ErrorBoundary caught error:", error, errorInfo);
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-8 text-center text-red-400 bg-slate-950 h-screen flex flex-col items-center justify-center font-mono">
+                            <h2 className="text-xl font-bold mb-3 text-red-300">Rendering Exception</h2>
+                            <pre className="text-xs bg-slate-900 border border-red-900/50 p-4 rounded-xl text-left overflow-auto max-w-xl max-h-48 text-red-200">
+                                {String(this.state.error && (this.state.error.stack || this.state.error.message))}
+                            </pre>
+                            <button onClick={() => window.location.reload()} className="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs uppercase font-bold tracking-wider">
+                                Reload Application
+                            </button>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
