@@ -847,13 +847,13 @@ export default function App() {
                 // Midnight passed
                 setCurrentDayStr(nowStr);
                 fetchAllData();
-                fetchLiveData();
             } else if (new Date().getMinutes() % 15 === 0) {
                 // 15 min check
                 fetchAllData();
-                fetchLiveData();
             }
-        }, 60000); 
+            // Fetch live sensor data every 2 minutes
+            fetchLiveData();
+        }, 120000); 
         
         return () => clearInterval(timer);
     }, [fetchAllData, fetchLiveData, currentDayStr]);
@@ -998,7 +998,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.4.1 • {weatherSource}</span>
+                <span>v1.4.2 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}
