@@ -862,11 +862,11 @@
                             </defs>
 
                             {Array.from({length: totalDays - 1}).map((_, i) => (
-                                <line key={i} x1={(i + 1) * 200} y1="0" x2={(i + 1) * 200} y2="100" stroke="rgba(148, 163, 184, 0.15)" strokeWidth="1" strokeDasharray="4 4" />
+                                <line key={i} x1={(i + 1) * 200} y1="0" x2={(i + 1) * 200} y2="100" stroke="rgba(148, 163, 184, 0.12)" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
                             ))}
 
                             <path d={fillD} fill="url(#waterFill)" />
-                            <path d={pathD} fill="none" stroke="url(#lineGlow)" strokeWidth="2.5" className="drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
+                            <path d={pathD} fill="none" stroke="url(#lineGlow)" strokeWidth="1.75" vectorEffect="non-scaling-stroke" className="drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
                             
                             {/* Measured Tide - Segmented dashed emerald curve (no connecting line across night gaps) */}
                             {measuredPathD && (
@@ -874,8 +874,9 @@
                                     d={measuredPathD} 
                                     fill="none" 
                                     stroke="#34d399" 
-                                    strokeWidth="2.5" 
+                                    strokeWidth="1.75" 
                                     strokeDasharray="4 3" 
+                                    vectorEffect="non-scaling-stroke"
                                     className="drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]" 
                                 />
                             )}
@@ -886,7 +887,8 @@
                                     d={tempPathD} 
                                     fill="none" 
                                     stroke="#fbbf24" 
-                                    strokeWidth="2.2" 
+                                    strokeWidth="1.75" 
+                                    vectorEffect="non-scaling-stroke"
                                     className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
                                 />
                             )}
@@ -894,7 +896,7 @@
                             {/* Live Now Indicator */}
                             {xNow >= 0 && xNow <= svgWidth && (
                                 <>
-                                    <line x1={xNow} y1="0" x2={xNow} y2="100" stroke="rgba(255, 255, 255, 0.5)" strokeWidth="1.5" strokeDasharray="4 4" />
+                                    <line x1={xNow} y1="0" x2={xNow} y2="100" stroke="rgba(255, 255, 255, 0.6)" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
                                     <circle cx={xNow} cy={yNow} r="10" fill="rgba(56, 189, 248, 0.3)" className="animate-pulse" />
                                     <circle cx={xNow} cy={yNow} r="4" fill="#fff" className="drop-shadow-[0_0_5px_rgba(255,255,255,1)]" />
                                 </>
@@ -903,7 +905,7 @@
                             {/* Interactive Touch Scrubber Indicator */}
                             {scrubInfo && (
                                 <>
-                                    <line x1={scrubInfo.x} y1="0" x2={scrubInfo.x} y2="100" stroke="#fde047" strokeWidth="1.5" strokeDasharray="2 2" />
+                                    <line x1={scrubInfo.x} y1="0" x2={scrubInfo.x} y2="100" stroke="#fde047" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
                                     {scrubInfo.tideY !== null && (
                                         <circle cx={scrubInfo.x} cy={scrubInfo.tideY} r="5" fill="#22d3ee" stroke="#083344" strokeWidth="1.5" />
                                     )}
@@ -1414,7 +1416,7 @@
                         )}
                     </main>
                     <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                        <span>v1.4.7 • {weatherSource}</span>
+                        <span>v1.4.8 • {weatherSource}</span>
                         {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                             <span className="text-emerald-500/80">• Live Sensors</span>
                         )}
