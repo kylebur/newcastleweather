@@ -145,6 +145,7 @@ def fetch_sensor_data(config):
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     start_utc = now_utc - datetime.timedelta(hours=history_hours)
     start_iso = start_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    end_iso = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Fetch current states
     water_state = None
@@ -162,9 +163,9 @@ def fetch_sensor_data(config):
     except Exception as e:
         print(f"[WARN] Could not fetch current state for {tide_entity}: {e}")
 
-    # Fetch history
+    # Fetch history (Home Assistant requires end_time parameter, otherwise defaults to 24h from start)
     entities_to_query = [e for e in [water_entity, tide_entity] if e]
-    history_endpoint = f"history/period/{start_iso}?filter_entity_id={','.join(entities_to_query)}"
+    history_endpoint = f"history/period/{start_iso}?end_time={end_iso}&filter_entity_id={','.join(entities_to_query)}"
     
     raw_history = []
     try:
