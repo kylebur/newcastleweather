@@ -459,7 +459,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         });
     }
 
-    // Process live measured tide data points
+    // Process live measured tide data points with gap splitting (no lines connecting across overnight gaps)
     const measuredHistory = (liveData && liveData.measured_tide && Array.isArray(liveData.measured_tide.history)) 
         ? liveData.measured_tide.history 
         : [];
@@ -473,29 +473,93 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         }
     });
 
+    const MAX_GAP_MS = 60 * 60 * 1000; // 60 minutes threshold to start new subpath
+
     let measuredPathD = "";
-    if (validMeasured.length > 1) {
-        measuredPathD = `M ${getX(validMeasured[0].t)},${getY(validMeasured[0].v)}`;
-        for (let i = 1; i < validMeasured.length; i++) {
-            measuredPathD += ` L ${getX(validMeasured[i].t)},${getY(validMeasured[i].v)}`;
+    let lastTideTime = null;
+    validMeasured.forEach((pt) => {
+        const ptTime = parseLocal(pt.t).getTime();
+        const x = getX(pt.t);
+        const y = getY(pt.v);
+        if (isNaN(x) || isNaN(y)) return;
+        
+        if (lastTideTime === null || (ptTime - lastTideTime) > MAX_GAP_MS) {
+            measuredPathD += ` M ${x.toFixed(1)},${y.toFixed(1)}`;
+        } else {
+            measuredPathD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
         }
-    }
+        lastTideTime = ptTime;
+    });
+
+    // Process live river water temperature points with gap splitting
+    const tempHistory = (liveData && liveData.water_temperature && Array.isArray(liveData.water_temperature.history)) 
+        ? liveData.water_temperature.history 
+        : [];
+
+    const validTemps = tempHistory.filter(pt => {
+        try {
+            const tMs = parseLocal(pt.t).getTime();
+            return tMs >= startTime && tMs <= startTime + totalTime && !isNaN(parseFloat(pt.v));
+        } catch {
+            return false;
+        }
+    });
+
+    const tempVals = validTemps.map(d => parseFloat(d.v));
+    const minWaterTemp = tempVals.length > 0 ? Math.min(...tempVals) : 60;
+    const maxWaterTemp = tempVals.length > 0 ? Math.max(...tempVals) : 80;
+    const tempPad = Math.max((maxWaterTemp - minWaterTemp) * 0.25, 2.0);
+    const tempMinBound = minWaterTemp - tempPad;
+    const tempMaxBound = maxWaterTemp + tempPad;
+
+    const getTempY = (tempVal) => {
+        const val = parseFloat(tempVal);
+        const norm = (val - tempMinBound) / (tempMaxBound - tempMinBound || 1);
+        // Map to upper-middle section of chart (Y: 18 to 80)
+        return 80 - norm * 60;
+    };
+
+    let tempPathD = "";
+    let lastTempTime = null;
+    validTemps.forEach((pt) => {
+        const ptTime = parseLocal(pt.t).getTime();
+        const x = getX(pt.t);
+        const y = getTempY(pt.v);
+        if (isNaN(x) || isNaN(y)) return;
+        
+        if (lastTempTime === null || (ptTime - lastTempTime) > MAX_GAP_MS) {
+            tempPathD += ` M ${x.toFixed(1)},${y.toFixed(1)}`;
+        } else {
+            tempPathD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
+        }
+        lastTempTime = ptTime;
+    });
 
     const currentMeasuredTide = liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined
         ? parseFloat(liveData.measured_tide.current)
         : null;
 
+    const currentWaterTemp = liveData && liveData.water_temperature && liveData.water_temperature.current !== null && liveData.water_temperature.current !== undefined
+        ? parseFloat(liveData.water_temperature.current)
+        : null;
+
     return (
         <div className="w-full h-full flex flex-col pointer-events-none">
-            <div className="flex items-center gap-3 mb-2 pl-2 opacity-90 absolute -top-8 left-2 z-10">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 pl-2 opacity-90 absolute -top-8 left-2 z-10">
+                <div className="flex items-center gap-1.5">
                     <Waves size={18} className="text-cyan-400" />
-                    <span className="text-sm font-bold text-cyan-400 tracking-widest uppercase drop-shadow-md">Tides</span>
+                    <span className="text-sm font-bold text-cyan-400 tracking-widest uppercase drop-shadow-md">Tides & River</span>
                 </div>
                 {validMeasured.length > 0 && (
                     <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-[10px] text-emerald-300 font-semibold tracking-wider uppercase backdrop-blur-md">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>Live Sensor ({validMeasured.length} readings)</span>
+                        <span className="w-2 h-0.5 bg-emerald-400 inline-block border-b border-dashed border-emerald-300" />
+                        <span>Measured Tide ({validMeasured.length})</span>
+                    </div>
+                )}
+                {validTemps.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/70 border border-amber-500/40 text-[10px] text-amber-300 font-semibold tracking-wider uppercase backdrop-blur-md">
+                        <span className="w-2 h-0.5 bg-amber-400 inline-block" />
+                        <span>River Temp ({Math.round(minWaterTemp)}°–{Math.round(maxWaterTemp)}°F)</span>
                     </div>
                 )}
             </div>
@@ -521,6 +585,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     <path d={fillD} fill="url(#waterFill)" />
                     <path d={pathD} fill="none" stroke="url(#lineGlow)" strokeWidth="2.5" className="drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
                     
+                    {/* Measured Tide - Segmented dashed emerald curve (no connecting line across night gaps) */}
                     {measuredPathD && (
                         <path 
                             d={measuredPathD} 
@@ -533,14 +598,37 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     )}
                     {validMeasured.map((pt, i) => (
                         <circle 
-                            key={i} 
+                            key={`tide-pt-${i}`} 
                             cx={getX(pt.t)} 
                             cy={getY(pt.v)} 
-                            r="3.5" 
+                            r="3" 
                             fill="#34d399" 
                             stroke="#064e3b" 
-                            strokeWidth="1.5" 
+                            strokeWidth="1.2" 
                             className="drop-shadow-[0_0_4px_rgba(52,211,153,0.9)]" 
+                        />
+                    ))}
+
+                    {/* River Water Temperature - Glowing amber curve */}
+                    {tempPathD && (
+                        <path 
+                            d={tempPathD} 
+                            fill="none" 
+                            stroke="#fbbf24" 
+                            strokeWidth="2.2" 
+                            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
+                        />
+                    )}
+                    {validTemps.map((pt, i) => (
+                        <circle 
+                            key={`temp-pt-${i}`} 
+                            cx={getX(pt.t)} 
+                            cy={getTempY(pt.v)} 
+                            r="2.5" 
+                            fill="#fbbf24" 
+                            stroke="#78350f" 
+                            strokeWidth="1" 
+                            className="drop-shadow-[0_0_4px_rgba(251,191,36,0.9)]" 
                         />
                     ))}
 
@@ -597,11 +685,22 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
     );
 };
 
-const DayCard = ({ day, isFocused, visibleDays }) => {
+const DayCard = ({ day, isFocused, visibleDays, liveData }) => {
     const isToday = day.isToday;
     const isSnow = day.snowSum > 0;
     const isMobile = visibleDays === 1;
     
+    const dayWaterTemp = useMemo(() => {
+        if (!liveData || !liveData.water_temperature || !Array.isArray(liveData.water_temperature.history)) return null;
+        const timePrefix = day.timeStr || (day.dateObj && day.dateObj.toISOString().slice(0, 10));
+        if (!timePrefix) return null;
+        const matches = liveData.water_temperature.history.filter(pt => pt.t && pt.t.startsWith(timePrefix));
+        if (matches.length === 0) return null;
+        const vals = matches.map(p => parseFloat(p.v)).filter(v => !isNaN(v));
+        if (vals.length === 0) return null;
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    }, [liveData, day.timeStr, day.dateObj]);
+
     // Day style rules strictly bound to focus / swipe card
     const cardBaseClasses = "day-card-compact flex flex-col relative rounded-[1.5rem] lg:rounded-[2rem] p-3 sm:p-4 lg:p-5 backdrop-blur-xl transition-all duration-500 w-full h-full";
     const bgClasses = isFocused 
@@ -664,6 +763,16 @@ const DayCard = ({ day, isFocused, visibleDays }) => {
                     <span className="text-[8px] sm:text-[9px] xl:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Clouds</span>
                 </div>
             </div>
+
+            {/* River Water Temp if recorded for this day */}
+            {dayWaterTemp !== null && (
+                <div className="card-watertemp-row flex items-center justify-center gap-1.5 bg-cyan-950/50 border border-cyan-500/30 rounded-xl py-1 px-2 mb-2 text-cyan-300 shadow-sm">
+                    <Waves size={isMobile ? 12 : 14} className="text-cyan-400" />
+                    <span className="text-[10px] sm:text-xs xl:text-sm font-semibold tracking-wide">
+                        River {dayWaterTemp}°F
+                    </span>
+                </div>
+            )}
             
             {/* Moon Phase */}
             <div className="card-moonphase-row flex items-center justify-center gap-1.5 sm:gap-2 xl:gap-3 bg-slate-900/40 rounded-xl py-1.5 sm:py-2 xl:py-3 px-2 whitespace-nowrap overflow-hidden mt-auto">
@@ -985,7 +1094,7 @@ export default function App() {
                         <div className="flex w-full items-stretch flex-shrink-0 mt-2 sm:mt-6 lg:mt-8 relative z-30 pointer-events-none h-fit">
                             {fullWeatherData.map((day, idx) => (
                                 <div key={idx} style={{ width: `${100 / totalDays}%`, padding: '0 12px' }}>
-                                    <DayCard day={day} isFocused={idx === centerIndex} visibleDays={visibleDays} />
+                                    <DayCard day={day} isFocused={idx === centerIndex} visibleDays={visibleDays} liveData={liveData} />
                                 </div>
                             ))}
                         </div>
@@ -998,7 +1107,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.4.2 • {weatherSource}</span>
+                <span>v1.4.3 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}

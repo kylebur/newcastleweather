@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
     "measured_tide_entity": os.getenv("HA_TIDE_ENTITY", "sensor.measured_tide_height"),
     "output_file": os.getenv("LIVE_DATA_OUTPUT", "live_data.json"),
     "repo_dir": os.getenv("REPO_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "history_hours": int(os.getenv("HISTORY_HOURS", "48")),
+    "history_hours": int(os.getenv("HISTORY_HOURS", "720")),
     "git_push": os.getenv("GIT_PUSH", "true").lower() in ("true", "1", "yes"),
     "git_remote": os.getenv("GIT_REMOTE", "origin"),
     "git_branch": os.getenv("GIT_BRANCH", "main")
@@ -232,8 +232,8 @@ def fetch_sensor_data(config):
             water_hist_map.append({"t": cur_time_str, "v": current_water_temp})
 
     # Filter to at most 1 reading per 5 minutes to keep file size efficient
-    water_hist_map = filter_dense_history(water_hist_map, min_interval_minutes=5)
-    tide_hist_map = filter_dense_history(tide_hist_map, min_interval_minutes=5)
+    water_hist_map = filter_dense_history(water_hist_map, min_interval_minutes=10)
+    tide_hist_map = filter_dense_history(tide_hist_map, min_interval_minutes=10)
 
     payload = {
         "updated_at": iso_now,
