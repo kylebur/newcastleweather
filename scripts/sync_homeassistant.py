@@ -20,6 +20,11 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -281,8 +286,26 @@ def git_commit_and_push(repo_dir, output_file, remote="origin", branch="main"):
         return False
 
 
+def acquire_process_lock(lock_file_path="/tmp/ha_weather_sync.lock"):
+    """Acquire a non-blocking lock to ensure single-instance execution across OS platforms."""
+    if fcntl is None:
+        return None
+    try:
+        f = open(lock_file_path, "w")
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return f
+    except (BlockingIOError, IOError):
+        print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Another instance of sync_homeassistant is already running. Exiting.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"[WARN] Could not acquire lock {lock_file_path}: {e}")
+        return None
+
+
 def main():
+    _lock_handle = acquire_process_lock()
     parser = argparse.ArgumentParser(description="Sync Home Assistant river temp and tide data to GitHub.")
+
     parser.add_argument("--config", "-c", help="Path to config JSON file")
     parser.add_argument("--dry-run", action="store_true", help="Fetch and print data without writing or pushing")
     parser.add_argument("--no-push", action="store_true", help="Write live_data.json but do not git commit/push")
