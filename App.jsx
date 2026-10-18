@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { 
     Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
     CloudFog, CloudDrizzle, Droplets, ArrowUp, ArrowDown,
-    Waves, Loader2, CloudSun, AlertCircle, CalendarClock
+    Waves, Loader2, CloudSun, AlertCircle, CalendarClock,
+    Sunrise, Sunset, Moon
 } from 'lucide-react';
+import SunCalc from 'suncalc';
 
 // --- Utility Functions ---
 
@@ -59,6 +61,17 @@ const generate29DaysRange = () => {
     return days;
 };
 
+const formatEstDateTimeStr = (date) => {
+    if (!date || isNaN(date)) return "";
+    const est = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const yyyy = est.getFullYear();
+    const mm = String(est.getMonth() + 1).padStart(2, '0');
+    const dd = String(est.getDate()).padStart(2, '0');
+    const hh = String(est.getHours()).padStart(2, '0');
+    const min = String(est.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
 const mergeNwsDataWithCache = (nwsData) => {
     const timeRange = generate29DaysRange();
     
@@ -90,7 +103,9 @@ const mergeNwsDataWithCache = (nwsData) => {
         weather_code: [],
         precipitation_sum: [],
         snowfall_sum: [],
-        precipitation_probability_max: []
+        precipitation_probability_max: [],
+        sunrise: [],
+        sunset: []
     };
     
     const hourly = {
@@ -112,6 +127,8 @@ const mergeNwsDataWithCache = (nwsData) => {
         let snowSum = 0;
         let precipProb = 0;
         let cloudVal = 50;
+        let sunriseVal = "";
+        let sunsetVal = "";
         
         // 1. Populate from cache
         if (cacheIdx !== -1) {
@@ -121,6 +138,8 @@ const mergeNwsDataWithCache = (nwsData) => {
             precipSum = cachedDaily.precipitation_sum[cacheIdx] || 0;
             snowSum = cachedDaily.snowfall_sum[cacheIdx] || 0;
             precipProb = cachedDaily.precipitation_probability_max[cacheIdx] || 0;
+            if (cachedDaily.sunrise) sunriseVal = cachedDaily.sunrise[cacheIdx] || "";
+            if (cachedDaily.sunset) sunsetVal = cachedDaily.sunset[cacheIdx] || "";
             
             if (cache && cache.data && cache.data.hourly) {
                 const hData = cache.data.hourly;
@@ -131,6 +150,15 @@ const mergeNwsDataWithCache = (nwsData) => {
                     }
                 }
             }
+        }
+
+        // Calculate sunrise/sunset locally using SunCalc if missing from cache
+        if (!sunriseVal || !sunsetVal) {
+            const [year, month, day] = dateStr.split('-');
+            const dateObj = new Date(year, month - 1, day);
+            const times = SunCalc.getTimes(dateObj, 44.0328, -69.5191);
+            if (!sunriseVal) sunriseVal = formatEstDateTimeStr(times.sunrise);
+            if (!sunsetVal) sunsetVal = formatEstDateTimeStr(times.sunset);
         }
         
         // 2. Overwrite with NWS forecast
@@ -183,11 +211,18 @@ const mergeNwsDataWithCache = (nwsData) => {
         daily.precipitation_sum.push(precipSum);
         daily.snowfall_sum.push(snowSum);
         daily.precipitation_probability_max.push(precipProb);
+        daily.sunrise.push(sunriseVal);
+        daily.sunset.push(sunsetVal);
     });
     
+    const firstPeriodTemp = (nwsData && nwsData.properties && nwsData.properties.periods && nwsData.properties.periods[0])
+        ? nwsData.properties.periods[0].temperature
+        : undefined;
+
     return {
         daily,
-        hourly
+        hourly,
+        current: firstPeriodTemp !== undefined ? { temperature_2m: firstPeriodTemp } : undefined
     };
 };
 
@@ -367,6 +402,28 @@ const formatTime = (timeStr) => {
     return `${hours}:${min} ${ampm}`;
 };
 
+const formatSunriseSet = (isoString) => {
+    if (!isoString) return "--:--";
+    const timePart = isoString.split('T')[1];
+    if (!timePart) return "--:--";
+    let [hours, minutes] = timePart.split(':');
+    hours = parseInt(hours, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
+};
+
+const formatDateObjToTime = (d) => {
+    if (!d || isNaN(d)) return "--:--";
+    let hours = d.getHours();
+    let minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+};
+
 const parseLocal = (timeStr) => {
     if (!timeStr) return new Date();
     const cleanStr = String(timeStr).replace('T', ' ');
@@ -476,7 +533,8 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         }
     });
 
-    const MAX_GAP_MS = 60 * 60 * 1000; // 60 minutes threshold to start new subpath
+    const MAX_TIDE_GAP_MS = 60 * 60 * 1000; // 60 minutes threshold for optical daytime tide gauge
+    const MAX_TEMP_GAP_MS = 12 * 60 * 60 * 1000; // 12 hours threshold for Zigbee river temp sensor (reports on change)
 
     let measuredPathD = "";
     let lastTideTime = null;
@@ -486,7 +544,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         const y = getY(pt.v);
         if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) return;
         
-        if (lastTideTime === null || (ptTime - lastTideTime) > MAX_GAP_MS) {
+        if (lastTideTime === null || (ptTime - lastTideTime) > MAX_TIDE_GAP_MS) {
             measuredPathD += ` M ${x.toFixed(1)},${y.toFixed(1)}`;
         } else {
             measuredPathD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
@@ -494,7 +552,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         lastTideTime = ptTime;
     });
 
-    // Process live river water temperature points with gap splitting
+    // Process live river water temperature points with 12h gap tolerance
     const tempHistory = (liveData && liveData.water_temperature && Array.isArray(liveData.water_temperature.history)) 
         ? liveData.water_temperature.history 
         : [];
@@ -530,7 +588,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         const y = getTempY(pt.v);
         if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) return;
         
-        if (lastTempTime === null || (ptTime - lastTempTime) > MAX_GAP_MS) {
+        if (lastTempTime === null || (ptTime - lastTempTime) > MAX_TEMP_GAP_MS) {
             tempPathD += ` M ${x.toFixed(1)},${y.toFixed(1)}`;
         } else {
             tempPathD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
@@ -578,7 +636,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         });
 
         let nearestTemp = null;
-        let minTempDiff = 4 * 60 * 60 * 1000;
+        let minTempDiff = 6 * 60 * 60 * 1000;
         validTemps.forEach(p => {
             const diff = Math.abs(parseLocal(p.t).getTime() - targetMs);
             if (diff < minTempDiff) {
@@ -602,13 +660,27 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
         });
     };
 
-    const currentMeasuredTide = liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined
+    const lastMeasuredPt = validMeasured.length > 0 ? validMeasured[validMeasured.length - 1] : null;
+    const isMeasuredFresh = lastMeasuredPt
+        ? (nowTime - parseLocal(lastMeasuredPt.t).getTime()) <= 75 * 60 * 1000
+        : false;
+
+    const currentMeasuredTide = (isMeasuredFresh && liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined)
         ? parseFloat(liveData.measured_tide.current)
         : null;
 
-    const currentWaterTemp = liveData && liveData.water_temperature && liveData.water_temperature.current !== null && liveData.water_temperature.current !== undefined
-        ? parseFloat(liveData.water_temperature.current)
-        : null;
+    const currentPredictedTide = useMemo(() => {
+        let nearest = null;
+        let minDiff = Infinity;
+        continuousData.forEach(p => {
+            const diff = Math.abs(parseLocal(p.t).getTime() - nowTime);
+            if (diff < minDiff) {
+                minDiff = diff;
+                nearest = parseFloat(p.v);
+            }
+        });
+        return nearest;
+    }, [continuousData, nowTime]);
 
     return (
         <div className="w-full h-full flex flex-col pointer-events-auto select-none">
@@ -630,7 +702,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     </div>
                 )}
                 <span className="text-[10px] text-slate-400 hidden sm:inline-block italic ml-1">
-                    (Touch/drag chart to inspect temperature & tide)
+                    (Touch/drag chart to inspect • Click any day or use ←/→ keys)
                 </span>
             </div>
             
@@ -771,11 +843,13 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
                     <div 
                         className="absolute transform -translate-x-1/2 top-0 mt-3 flex flex-col items-center z-20 pointer-events-none"
                         style={{ left: `${(xNow / svgWidth) * 100}%` }}>
-                        <span className="bg-blue-500/90 text-white text-[9px] xl:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(59,130,246,0.6)] border border-blue-400/50 flex items-center gap-1">
+                        <span className="bg-blue-500/90 text-white text-[9px] xl:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(59,130,246,0.6)] border border-blue-400/50 flex items-center gap-1 whitespace-nowrap">
                             <span>Now</span>
-                            {currentMeasuredTide !== null && (
+                            {currentMeasuredTide !== null ? (
                                 <span className="text-emerald-200 font-normal">({currentMeasuredTide.toFixed(1)}')</span>
-                            )}
+                            ) : currentPredictedTide !== null ? (
+                                <span className="text-cyan-100 font-normal">({currentPredictedTide.toFixed(1)}' est)</span>
+                            ) : null}
                         </span>
                     </div>
                 )}
@@ -784,7 +858,7 @@ const TideChart = ({ tideData, fullWeatherData, liveData }) => {
     );
 };
 
-const DayCard = ({ day, isFocused, visibleDays, liveData }) => {
+const DayCard = ({ day, isFocused, visibleDays, liveData, onSelect }) => {
     const isToday = day.isToday;
     const isSnow = day.snowSum > 0;
     const isMobile = visibleDays === 1;
@@ -800,13 +874,13 @@ const DayCard = ({ day, isFocused, visibleDays, liveData }) => {
         return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
     }, [liveData, day.dateStr]);
 
-    const cardBaseClasses = "day-card-compact flex flex-col relative rounded-2xl lg:rounded-3xl p-3 sm:p-3.5 backdrop-blur-xl transition-all duration-300 w-full h-full justify-between";
+    const cardBaseClasses = "day-card-compact flex flex-col relative rounded-2xl lg:rounded-3xl p-3 sm:p-3.5 backdrop-blur-xl transition-all duration-300 w-full h-full justify-between pointer-events-auto cursor-pointer";
     const bgClasses = isFocused 
         ? "bg-gradient-to-b from-blue-900/80 via-slate-900/90 to-slate-950/95 border-2 border-blue-400/60 shadow-[0_0_35px_rgba(59,130,246,0.35)] scale-[1.02] z-20 opacity-100" 
-        : "bg-slate-900/50 border border-slate-700/40 shadow-md opacity-65 transition-opacity z-10 hover:opacity-90";
+        : "bg-slate-900/50 border border-slate-700/40 shadow-md opacity-65 transition-opacity z-10 hover:opacity-90 hover:border-slate-500/60";
         
     return (
-        <div className={`${cardBaseClasses} ${bgClasses}`}>
+        <div onClick={onSelect} className={`${cardBaseClasses} ${bgClasses}`}>
             {/* Top Header: Day & Date */}
             <div className="flex items-center justify-between border-b border-slate-700/40 pb-1.5 mb-1.5">
                 <span className={`font-bold tracking-wide ${isToday ? 'text-base sm:text-lg text-white font-extrabold' : 'text-xs sm:text-sm text-slate-200'}`}>
@@ -913,6 +987,22 @@ export default function App() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Keyboard Navigation (Left/Right arrows, T/Home for Today)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (fullWeatherData.length === 0) return;
+            if (e.key === 'ArrowLeft') {
+                setCenterIndex(prev => Math.max(0, prev - 1));
+            } else if (e.key === 'ArrowRight') {
+                setCenterIndex(prev => Math.min(fullWeatherData.length - 1, prev + 1));
+            } else if (e.key === 't' || e.key === 'T' || e.key === 'Home') {
+                setCenterIndex(todayIndex);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [fullWeatherData.length, todayIndex]);
+
     // Drag / Swipe State
     const containerRef = useRef(null);
     const [dragStartX, setDragStartX] = useState(null);
@@ -952,7 +1042,7 @@ export default function App() {
         try {
             const lat = 44.0328;
             const lon = -69.5191;
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max,sunrise,sunset&hourly=cloud_cover&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York&past_days=14&forecast_days=15`;
             
             let wData;
             let source = 'Open-Meteo';
@@ -1020,6 +1110,8 @@ export default function App() {
             const combined = wData.daily.time.map((timeStr, idx) => {
                 const [year, month, day] = timeStr.split('-');
                 const dateObj = new Date(year, month - 1, day);
+                const moonPhase = getMoonPhase(dateObj);
+                const moonTimes = SunCalc.getMoonTimes(dateObj, lat, lon);
                 
                 return {
                     dateStr: timeStr,
@@ -1031,8 +1123,12 @@ export default function App() {
                     precipSum: wData.daily.precipitation_sum[idx] || 0,
                     snowSum: wData.daily.snowfall_sum[idx] || 0,
                     precipProb: wData.daily.precipitation_probability_max[idx] || 0,
+                    sunrise: wData.daily.sunrise ? wData.daily.sunrise[idx] : "",
+                    sunset: wData.daily.sunset ? wData.daily.sunset[idx] : "",
+                    moonrise: formatDateObjToTime(moonTimes.rise),
+                    moonset: formatDateObjToTime(moonTimes.set),
                     cloudCover: calculateDailyCloudCover(timeStr, wData.hourly),
-                    moonPhase: getMoonPhase(dateObj)
+                    moonPhase: moonPhase
                 };
             });
             
@@ -1095,17 +1191,59 @@ export default function App() {
                 if (dragOffsetPx > 40) shiftedDays = -1;
             }
             
-            setCenterIndex(prev => Math.max(0, Math.min(prev + shiftedDays, fullWeatherData.length - 1)));
+            if (shiftedDays !== 0) {
+                setCenterIndex(prev => Math.max(0, Math.min(prev + shiftedDays, fullWeatherData.length - 1)));
+            }
         }
         
         setDragOffsetPx(0);
         setDragStartX(null);
     };
 
+    // Determine freshness of measured tide and next upcoming High/Low tide
+    const tideHeaderStatus = useMemo(() => {
+        const nowMs = Date.now();
+        let nextEvent = null;
+        if (tideData && Array.isArray(tideData.hilo)) {
+            for (let i = 0; i < tideData.hilo.length; i++) {
+                const evtMs = parseLocal(tideData.hilo[i].t).getTime();
+                if (evtMs > nowMs) {
+                    nextEvent = {
+                        ...tideData.hilo[i],
+                        timeFormatted: formatTime(tideData.hilo[i].t)
+                    };
+                    break;
+                }
+            }
+        }
+
+        const hist = (liveData && liveData.measured_tide && Array.isArray(liveData.measured_tide.history))
+            ? liveData.measured_tide.history
+            : [];
+        const lastPt = hist.length > 0 ? hist[hist.length - 1] : null;
+        const lastMs = lastPt ? parseLocal(lastPt.t).getTime() : 0;
+        const isFresh = lastPt ? (nowMs - lastMs) <= 75 * 60 * 1000 : false;
+        const currentVal = (liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined)
+            ? parseFloat(liveData.measured_tide.current)
+            : null;
+
+        return {
+            isFresh,
+            currentVal,
+            lastTimeStr: lastPt ? formatTime(lastPt.t) : null,
+            trend: liveData && liveData.measured_tide ? liveData.measured_tide.trend : null,
+            nextEvent
+        };
+    }, [liveData, tideData]);
+
     const totalDays = fullWeatherData.length;
     const panIndex = Math.max(0, Math.min(centerIndex - Math.floor(visibleDays / 2), totalDays - visibleDays));
     const isCenteredOnToday = centerIndex === todayIndex;
     const wrapperWidthPercent = totalDays > 0 ? (totalDays / visibleDays) * 100 : 100;
+
+    const cleanWaterUnit = (liveData && liveData.water_temperature && liveData.water_temperature.unit)
+        ? String(liveData.water_temperature.unit).replace(/^°+/, '')
+        : 'F';
 
     return (
         <div className="app-container h-screen w-full bg-[#0a0f1c] overflow-hidden flex flex-col relative text-white font-sans selection:bg-blue-500/30">
@@ -1115,30 +1253,56 @@ export default function App() {
             </div>
 
             <header className="w-full pt-3 pb-2 sm:pt-6 sm:pb-4 px-8 lg:px-12 flex flex-col sm:flex-row justify-between items-center shrink-0 z-10 gap-2 sm:gap-4 relative">
-                <div className="text-center md:text-left flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4">
+                <div className="text-center md:text-left flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3.5">
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-wide text-white mb-1 xl:mb-2 shadow-sm">Newcastle, ME</h1>
                     {currentTemp !== null && (
                         <span className="text-3xl lg:text-4xl font-light text-blue-300 drop-shadow-md">{Math.round(currentTemp)}°</span>
                     )}
                     {liveData && liveData.water_temperature && liveData.water_temperature.current !== null && liveData.water_temperature.current !== undefined && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-cyan-950/60 border border-cyan-500/40 rounded-full text-cyan-300 shadow-sm backdrop-blur-md">
-                            <Waves size={14} className="text-cyan-400" />
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-950/60 border border-amber-500/40 rounded-full text-amber-300 shadow-sm backdrop-blur-md">
+                            <Waves size={14} className="text-amber-400" />
                             <span className="text-xs sm:text-sm font-medium tracking-wide">
-                                River <span className="font-bold text-cyan-200">{Math.round(liveData.water_temperature.current)}°{liveData.water_temperature.unit || 'F'}</span>
+                                River <span className="font-bold text-amber-200">{parseFloat(liveData.water_temperature.current).toFixed(1)}°{cleanWaterUnit}</span>
                             </span>
                         </div>
                     )}
-                    {liveData && liveData.measured_tide && liveData.measured_tide.current !== null && liveData.measured_tide.current !== undefined && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded-full text-emerald-300 shadow-sm backdrop-blur-md">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-xs sm:text-sm font-medium tracking-wide">
-                                Tide <span className="font-bold text-emerald-100">{parseFloat(liveData.measured_tide.current).toFixed(1)}'</span>
-                            </span>
-                            {liveData.measured_tide.trend && (
-                                <span className="text-[10px] text-emerald-400/90 font-semibold uppercase">
-                                    {liveData.measured_tide.trend === 'rising' ? '▲' : liveData.measured_tide.trend === 'falling' ? '▼' : '•'}
+                    {tideHeaderStatus.currentVal !== null && (
+                        tideHeaderStatus.isFresh ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded-full text-emerald-300 shadow-sm backdrop-blur-md">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="text-xs sm:text-sm font-medium tracking-wide">
+                                    Tide <span className="font-bold text-emerald-100">{tideHeaderStatus.currentVal.toFixed(1)}'</span>
                                 </span>
+                                {tideHeaderStatus.trend && (
+                                    <span className="text-[10px] text-emerald-400/90 font-semibold uppercase">
+                                        {tideHeaderStatus.trend === 'rising' ? '▲' : tideHeaderStatus.trend === 'falling' ? '▼' : '•'}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/80 border border-slate-700/60 rounded-full text-slate-300 shadow-sm backdrop-blur-md" title="Optical tide sensor pauses after dusk">
+                                <span className="w-2 h-2 rounded-full bg-slate-500" />
+                                <span className="text-xs sm:text-sm font-medium tracking-wide">
+                                    Last Obs <span className="font-bold text-emerald-300">{tideHeaderStatus.currentVal.toFixed(1)}'</span>
+                                    {tideHeaderStatus.lastTimeStr && (
+                                        <span className="text-[10px] text-slate-400 ml-1">({tideHeaderStatus.lastTimeStr})</span>
+                                    )}
+                                </span>
+                            </div>
+                        )
+                    )}
+                    {tideHeaderStatus.nextEvent && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-950/60 border border-blue-500/30 rounded-full text-blue-200 shadow-sm backdrop-blur-md">
+                            {tideHeaderStatus.nextEvent.type === 'H' ? (
+                                <ArrowUp size={13} className="text-cyan-300" />
+                            ) : (
+                                <ArrowDown size={13} className="text-blue-400" />
                             )}
+                            <span className="text-xs sm:text-sm font-medium tracking-wide">
+                                Next {tideHeaderStatus.nextEvent.type === 'H' ? 'High' : 'Low'}{' '}
+                                <span className="font-bold text-white">{parseFloat(tideHeaderStatus.nextEvent.v).toFixed(1)}'</span>
+                                <span className="text-[11px] text-blue-300/90 ml-1">at {tideHeaderStatus.nextEvent.timeFormatted}</span>
+                            </span>
                         </div>
                     )}
                 </div>
@@ -1190,10 +1354,18 @@ export default function App() {
                         }}
                     >
                         {/* 29 Days Continuous DayCards Track */}
-                        <div className="flex w-full items-stretch flex-shrink-0 mt-1 sm:mt-2 lg:mt-3 relative z-30 pointer-events-none h-fit">
+                        <div className="flex w-full items-stretch flex-shrink-0 mt-1 sm:mt-2 lg:mt-3 relative z-30 h-fit">
                             {fullWeatherData.map((day, idx) => (
                                 <div key={idx} style={{ width: `${100 / totalDays}%`, padding: '0 8px' }}>
-                                    <DayCard day={day} isFocused={idx === centerIndex} visibleDays={visibleDays} liveData={liveData} />
+                                    <DayCard 
+                                        day={day} 
+                                        isFocused={idx === centerIndex} 
+                                        visibleDays={visibleDays} 
+                                        liveData={liveData}
+                                        onSelect={() => {
+                                            if (Math.abs(dragOffsetPx) < 10) setCenterIndex(idx);
+                                        }}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -1206,7 +1378,7 @@ export default function App() {
                 )}
             </main>
             <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono z-50 pointer-events-none select-none flex items-center gap-2">
-                <span>v1.5.1 • {weatherSource}</span>
+                <span>v1.6.0 • {weatherSource}</span>
                 {liveData && (liveData.water_temperature || liveData.measured_tide) && (
                     <span className="text-emerald-500/80">• Live Sensors</span>
                 )}
