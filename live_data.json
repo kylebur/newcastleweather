@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-11-10T17:30:03.240775-05:00",
+  "updated_at": "2026-11-10T18:00:03.398583-05:00",
   "water_temperature": {
     "current": null,
     "unit": "\u00b0F",
     "entity_id": "sensor.river_temperature_temperature",
     "history": [
       {
-        "t": "2026-10-11 18:33",
+        "t": "2026-10-11 19:00",
         "v": 56.84
       },
       {
@@ -582,7 +582,7 @@
     "entity_id": "sensor.tide_height",
     "history": [
       {
-        "t": "2026-10-11 18:33",
+        "t": "2026-10-11 19:00",
         "v": 0.02
       },
       {
